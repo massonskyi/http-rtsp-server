@@ -1,0 +1,65 @@
+[32m2025-04-09 15:25:54INFOmain message main.go[0m
+[32m2025-04-09 15:25:54INFOmain message main.go[0m
+[32m2025-04-09 15:25:54INFOrunServer message main.go[0m
+[32m2025-04-09 15:26:15INFOmain message main.go[0m
+[32m2025-04-09 15:26:15INFOmain message main.go[0m
+[32m2025-04-09 15:27:53INFOmain message main.go[0m
+[32m2025-04-09 15:27:53INFOmain message main.go[0m
+[32m2025-04-09 15:27:53INFOrunServer message main.go[0m
+[32m2025-04-09 15:28:01INFOmain message main.go[0m
+[32m2025-04-09 15:28:01INFOmain message main.go[0m
+2025-04-09 15:30:13INFOmain message main.go
+2025-04-09 15:30:13INFOmain message main.go
+2025-04-09 15:30:13INFOrunServer message main.go
+2025-04-09 15:30:24INFOmain message main.go
+2025-04-09 15:30:24INFOmain message main.go
+[2025-04-09 15:33:10][INFO][main] message [main.go]
+[2025-04-09 15:33:10][INFO][main] message [main.go]
+[2025-04-09 15:33:10][INFO][runServer] message [main.go]
+[2025-04-09 15:33:12][INFO][main] message [main.go]
+[2025-04-09 15:33:12][INFO][main] message [main.go]
+[[2025-04-09 15:34:11]][INFO][[main]] message [[main.go]]
+[[2025-04-09 15:34:11]][INFO][[main]] message [[main.go]]
+[[2025-04-09 15:34:11]][INFO][[runServer]] message [[main.go]]
+[[2025-04-09 15:34:12]][INFO][[main]] message [[main.go]]
+[[2025-04-09 15:34:12]][INFO][[main]] message [[main.go]]
+[2025-04-09 15:34:59][INFO][main] message [main.go]
+[2025-04-09 15:34:59][INFO][main] message [main.go]
+[2025-04-09 15:34:59][INFO][runServer] message [main.go]
+[2025-04-09 15:35:01][INFO][main] message [main.go]
+[2025-04-09 15:35:01][INFO][main] message [main.go]
+[2025-04-09 15:35:37]INFO[main] Configuration loaded successfully [main.go]
+[2025-04-09 15:35:37]INFO[main] Connected to database [main.go]
+[2025-04-09 15:35:37]INFO[runServer] Starting server on port 8080 [main.go]
+[2025-04-09 15:35:59]INFO[main] Received shutdown signal, shutting down server... [main.go]
+[2025-04-09 15:35:59]INFO[main] Server shut down gracefully [main.go]
+[2025-04-09 15:36:00]INFO[main] message [main.go]
+[2025-04-09 15:36:00]INFO[main] message [main.go]
+[2025-04-09 15:36:00]INFO[runServer] message [main.go]
+[2025-04-09 15:36:23]INFO[main] message [main.go]
+[2025-04-09 15:36:23]INFO[main] message [main.go]
+2025-04-09 15:36:24INFOmain Configuration loaded successfully main.go
+2025-04-09 15:36:24INFOmain Connected to database main.go
+2025-04-09 15:36:24INFOrunServer Starting server on port 8080 main.go
+2025-04-09 15:36:51INFOmain Received shutdown signal, shutting down server... main.go
+2025-04-09 15:36:51INFOmain Server shut down gracefully main.go
+2025-04-09 15:36:52 || INFO || main || Configuration loaded successfully || main.go
+2025-04-09 15:36:52 || INFO || main || Connected to database || main.go
+2025-04-09 15:36:52 || INFO || runServer || Starting server on port 8080 || main.go
+2025-04-09 15:37:36 || INFO || main || Received shutdown signal, shutting down server... || main.go
+2025-04-09 15:37:36 || INFO || main || Server shut down gracefully || main.go
+2025-04-09 15:37:38	||	INFO	||	main	||	Configuration loaded successfully	||	main.go
+2025-04-09 15:37:38	||	INFO	||	main	||	Connected to database	||	main.go
+2025-04-09 15:37:38	||	INFO	||	runServer	||	Starting server on port 8080	||	main.go
+2025-04-09 15:37:51	||	INFO	||	main	||	Received shutdown signal, shutting down server...	||	main.go
+2025-04-09 15:37:51	||	INFO	||	main	||	Server shut down gracefully	||	main.go
+2025-04-09 15:38:13	||	INFO||main||	Configuration loaded successfully	||	main.go
+2025-04-09 15:38:13	||	INFO||main||	Connected to database	||	main.go
+2025-04-09 15:38:13	||	INFO||runServer||	Starting server on port 8080	||	main.go
+2025-04-09 15:38:35	||	INFO||main||	Received shutdown signal, shutting down server...	||	main.go
+2025-04-09 15:38:35	||	INFO||main||	Server shut down gracefully	||	main.go
+2025-04-09 15:38:36	||INFO|| main || Configuration loaded successfully || main.go
+2025-04-09 15:38:36	||INFO|| main || Connected to database || main.go
+2025-04-09 15:38:36	||INFO|| runServer || Starting server on port 8080 || main.go
+2025-04-09 15:39:56	||INFO|| main || Received shutdown signal, shutting down server... || main.go
+2025-04-09 15:39:56	||INFO|| main || Server shut down gracefully || main.go
