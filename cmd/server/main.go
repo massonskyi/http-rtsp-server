@@ -6,26 +6,41 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"rstp-rsmt-server/internal/api"
 	"rstp-rsmt-server/internal/config"
 	"rstp-rsmt-server/internal/database"
+	"rstp-rsmt-server/internal/protocol"
+	"rstp-rsmt-server/internal/storage"
+	"rstp-rsmt-server/internal/stream"
 	"rstp-rsmt-server/internal/utils"
 	"syscall"
 	"time"
 )
 
 // runServer запускает HTTP-сервер в отдельной горутине
-func runServer(cfg *config.Config, logger *utils.Logger) error {
+func runServer(cfg *config.Config, logger *utils.Logger, storage *storage.Storage, fs *storage.FileSystem) error {
+	// Инициализируем RTSP-клиент
+	rtspClient := protocol.NewRTSPClient(cfg, logger, storage, fs)
+
+	// Инициализируем StreamManager
+	streamManager, err := stream.NewStreamManager(cfg, logger, storage, fs, rtspClient)
+	if err != nil {
+		logger.Errorf("runServer", "main.go", "Failed to initialize StreamManager: %v", err)
+		return err
+	}
+	defer streamManager.Shutdown()
+
+	// Инициализируем HLSManager
+	hlsManager := stream.NewHLSManager(cfg, logger)
+
+	// Инициализируем маршрутизацию
+	router := api.NewRouter(cfg, logger, streamManager, hlsManager)
+
 	// Создаем сервер
 	srv := &http.Server{
-		Addr: ":" + fmt.Sprintf("%d", cfg.ServerPort),
+		Addr:    ":" + fmt.Sprintf("%d", cfg.ServerPort),
+		Handler: router.SetupRoutes(),
 	}
-
-	// Регистрируем обработчики
-	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		logger.Info("healthHandler", "main.go", "Health check endpoint called")
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Server is running"))
-	})
 
 	// Запускаем сервер в горутине
 	go func() {
@@ -95,8 +110,12 @@ func main() {
 	defer db.Close()
 	logger.Info("main", "main.go", "Connected to database")
 
+	// Инициализация хранилища
+	store := storage.NewStorage(db.Pool, logger)
+	fs := storage.NewFileSystem(cfg, logger)
+
 	// Запуск сервера
-	if err := runServer(cfg, logger); err != nil {
+	if err := runServer(cfg, logger, store, fs); err != nil {
 		logger.Errorf("main", "main.go", "Failed to run server: %v", err)
 		os.Exit(1)
 	}

@@ -63,3 +63,620 @@
 2025-04-09 15:38:36	||INFO|| runServer || Starting server on port 8080 || main.go
 2025-04-09 15:39:56	||INFO|| main || Received shutdown signal, shutting down server... || main.go
 2025-04-09 15:39:56	||INFO|| main || Server shut down gracefully || main.go
+2025-04-09 16:05:36	||INFO|| main || Configuration loaded successfully || main.go
+2025-04-09 16:05:36	||INFO|| main || Connected to database || main.go
+2025-04-09 16:05:36	||INFO|| runServer || Starting server on port 8080 || main.go
+2025-04-09 16:06:27	||INFO|| main || Received shutdown signal, shutting down server... || main.go
+2025-04-09 16:06:27	||INFO|| main || Server shut down gracefully || main.go
+2025-04-09 16:40:11	||INFO|| main || Configuration loaded successfully || main.go
+2025-04-09 16:40:11	||INFO|| main || Connected to database || main.go
+2025-04-09 16:40:11	||INFO|| runServer || Starting server on port %!s(int=8080) || main.go
+2025-04-09 16:40:24	||INFO|| healthHandler || Health check endpoint called || main.go
+2025-04-09 16:40:25	||INFO|| healthHandler || Health check endpoint called || main.go
+2025-04-09 16:40:25	||INFO|| healthHandler || Health check endpoint called || main.go
+2025-04-09 16:40:26	||INFO|| healthHandler || Health check endpoint called || main.go
+2025-04-09 16:40:26	||INFO|| healthHandler || Health check endpoint called || main.go
+2025-04-09 16:40:26	||INFO|| healthHandler || Health check endpoint called || main.go
+2025-04-09 16:46:26	||INFO|| main || Received shutdown signal, shutting down server... || main.go
+2025-04-09 16:46:26	||INFO|| main || Server shut down gracefully || main.go
+2025-04-09 16:46:26	||INFO|| Shutdown || StreamManager shut down || manager.go
+2025-04-09 16:46:27	||INFO|| main || Configuration loaded successfully || main.go
+2025-04-09 16:46:27	||INFO|| main || Connected to database || main.go
+2025-04-09 16:46:27	||INFO|| runServer || Starting server on port %!s(int=8080) || main.go
+2025-04-09 16:46:34	||INFO|| Request || Received GET request for /health from [::1]:58634 || middleware.go
+2025-04-09 16:46:34	||INFO|| healthHandler || Health check endpoint called || handlers.go
+2025-04-09 16:46:34	||INFO|| Request || Completed GET /health in 5.928µs || middleware.go
+2025-04-09 16:46:45	||INFO|| main || Received shutdown signal, shutting down server... || main.go
+2025-04-09 16:46:45	||INFO|| main || Server shut down gracefully || main.go
+2025-04-09 16:46:45	||INFO|| Shutdown || StreamManager shut down || manager.go
+2025-04-09 16:47:31	||INFO|| main || Configuration loaded successfully || main.go
+2025-04-09 16:47:31	||INFO|| main || Connected to database || main.go
+2025-04-09 16:47:31	||INFO|| runServer || Starting server on port 8080 || main.go
+2025-04-09 16:47:32	||INFO|| main || Received shutdown signal, shutting down server... || main.go
+2025-04-09 16:47:32	||INFO|| main || Server shut down gracefully || main.go
+2025-04-09 16:47:32	||INFO|| Shutdown || StreamManager shut down || manager.go
+2025-04-09 16:47:44	||INFO|| main || Configuration loaded successfully || main.go
+2025-04-09 16:47:44	||INFO|| main || Connected to database || main.go
+2025-04-09 16:47:44	||INFO|| runServer || Starting server on port 8080 || main.go
+2025-04-09 16:48:00	||INFO|| Request || Received POST request for /start-stream from [::1]:51008 || middleware.go
+2025-04-09 16:48:00	||INFO|| StartStream || Started stream stream1 with URL rtsp://stream1 || manager.go
+2025-04-09 16:48:00	||INFO|| startStreamHandler || Started processing stream: rtsp://stream1 || handlers.go
+2025-04-09 16:48:00	||INFO|| Request || Completed POST /start-stream in 28.854µs || middleware.go
+2025-04-09 16:48:00	||INFO|| ProcessStream || Starting to process RTSP stream: rtsp://stream1 || rtsp.go
+2025-04-09 16:48:00	||INFO|| SaveVideo || Video saved with ID: 1 || database.go
+2025-04-09 16:48:00	||INFO|| UpdateVideoStatus || Video status updated to processing for video ID: 1 || database.go
+2025-04-09 16:48:00	||INFO|| SaveProcessingLog || Processing log saved for video ID: 1 || database.go
+2025-04-09 16:48:01	||ERROR|| ProcessStream || Failed to record video with FFmpeg: exit status 251 || rtsp.go
+2025-04-09 16:48:01	||INFO|| UpdateVideoStatus || Video status updated to failed for video ID: 1 || database.go
+2025-04-09 16:48:01	||ERROR|| StartStream || Failed to process stream stream1: failed to record video: exit status 251 || manager.go
+2025-04-09 17:23:59	||INFO|| main || Received shutdown signal, shutting down server... || main.go
+2025-04-09 17:23:59	||INFO|| main || Server shut down gracefully || main.go
+2025-04-09 17:23:59	||INFO|| Shutdown || StreamManager shut down || manager.go
+2025-04-09 17:24:01	||INFO|| main || Configuration loaded successfully || main.go
+2025-04-09 17:24:01	||INFO|| main || Connected to database || main.go
+2025-04-09 17:24:01	||INFO|| runServer || Starting server on port 8080 || main.go
+2025-04-09 17:25:15	||INFO|| Request || Received POST request for /start-stream from [::1]:58572 || middleware.go
+2025-04-09 17:25:15	||INFO|| StartStream || Started stream stream1 with URL rtsp://admin:1234Qwer@192.168.21.10:554/Streaming/Channels/101 || manager.go
+2025-04-09 17:25:15	||INFO|| startStreamHandler || Started processing stream: rtsp://admin:1234Qwer@192.168.21.10:554/Streaming/Channels/101 || handlers.go
+2025-04-09 17:25:15	||INFO|| Request || Completed POST /start-stream in 23.843µs || middleware.go
+2025-04-09 17:25:15	||INFO|| ProcessStream || Starting to process RTSP stream: rtsp://admin:1234Qwer@192.168.21.10:554/Streaming/Channels/101 || rtsp.go
+2025-04-09 17:25:16	||ERROR|| ProcessStream || RTSP stream is unavailable: failed to get streams: rtsp: Type=466670 unsupported || rtsp.go
+2025-04-09 17:25:16	||ERROR|| StartStream || Failed to process stream stream1: RTSP stream is unavailable: failed to get streams: rtsp: Type=466670 unsupported || manager.go
+2025-04-09 17:29:44	||INFO|| main || Received shutdown signal, shutting down server... || main.go
+2025-04-09 17:29:44	||INFO|| main || Server shut down gracefully || main.go
+2025-04-09 17:29:44	||INFO|| Shutdown || StreamManager shut down || manager.go
+2025-04-09 17:29:46	||INFO|| main || Configuration loaded successfully || main.go
+2025-04-09 17:29:46	||INFO|| main || Connected to database || main.go
+2025-04-09 17:29:46	||INFO|| runServer || Starting server on port 8080 || main.go
+2025-04-09 17:29:54	||INFO|| Request || Received POST request for /start-stream from [::1]:37828 || middleware.go
+2025-04-09 17:29:54	||INFO|| StartStream || Started stream stream1 with URL rtsp://admin:1234Qwer@192.168.21.10:554/Streaming/Channels/101 || manager.go
+2025-04-09 17:29:54	||INFO|| startStreamHandler || Started processing stream: rtsp://admin:1234Qwer@192.168.21.10:554/Streaming/Channels/101 || handlers.go
+2025-04-09 17:29:54	||INFO|| Request || Completed POST /start-stream in 20.849µs || middleware.go
+2025-04-09 17:29:54	||INFO|| ProcessStream || Starting to process RTSP stream: rtsp://admin:1234Qwer@192.168.21.10:554/Streaming/Channels/101 || rtsp.go
+2025-04-09 17:29:54	||ERROR|| SaveVideo || Failed to save video: ERROR: duplicate key value violates unique constraint "videos_file_path_key" (SQLSTATE 23505) || database.go
+2025-04-09 17:29:54	||ERROR|| StartStream || Failed to process stream stream1: failed to save video: failed to save video: ERROR: duplicate key value violates unique constraint "videos_file_path_key" (SQLSTATE 23505) || manager.go
+2025-04-09 17:33:48	||INFO|| main || Received shutdown signal, shutting down server... || main.go
+2025-04-09 17:33:48	||INFO|| main || Server shut down gracefully || main.go
+2025-04-09 17:33:48	||INFO|| Shutdown || StreamManager shut down || manager.go
+2025-04-09 17:33:49	||INFO|| main || Configuration loaded successfully || main.go
+2025-04-09 17:33:49	||INFO|| main || Connected to database || main.go
+2025-04-09 17:33:49	||INFO|| runServer || Starting server on port 8080 || main.go
+2025-04-09 17:33:52	||INFO|| Request || Received POST request for /start-stream from [::1]:57126 || middleware.go
+2025-04-09 17:33:52	||INFO|| StartStream || Started stream stream1 with URL rtsp://admin:1234Qwer@192.168.21.10:554/Streaming/Channels/101 || manager.go
+2025-04-09 17:33:52	||INFO|| startStreamHandler || Started processing stream: rtsp://admin:1234Qwer@192.168.21.10:554/Streaming/Channels/101 || handlers.go
+2025-04-09 17:33:52	||INFO|| Request || Completed POST /start-stream in 21.282µs || middleware.go
+2025-04-09 17:33:52	||INFO|| ProcessStream || Starting to process RTSP stream: rtsp://admin:1234Qwer@192.168.21.10:554/Streaming/Channels/101 || rtsp.go
+2025-04-09 17:33:54	||INFO|| SaveVideo || Video saved with ID: 3 || database.go
+2025-04-09 17:33:54	||INFO|| UpdateVideoStatus || Video status updated to processing for video ID: 3 || database.go
+2025-04-09 17:33:54	||INFO|| SaveProcessingLog || Processing log saved for video ID: 3 || database.go
+2025-04-09 17:34:28	||INFO|| main || Received shutdown signal, shutting down server... || main.go
+2025-04-09 17:34:28	||INFO|| main || Server shut down gracefully || main.go
+2025-04-09 17:34:28	||INFO|| Shutdown || StreamManager shut down || manager.go
+2025-04-09 17:34:28	||ERROR|| StartStream || Failed to process stream stream1: context canceled || manager.go
+2025-04-09 17:34:44	||INFO|| main || Configuration loaded successfully || main.go
+2025-04-09 17:34:44	||INFO|| main || Connected to database || main.go
+2025-04-09 17:34:44	||INFO|| runServer || Starting server on port 8080 || main.go
+2025-04-09 17:34:46	||INFO|| Request || Received POST request for /start-stream from [::1]:45166 || middleware.go
+2025-04-09 17:34:46	||INFO|| StartStream || Started stream stream1 with URL rtsp://admin:1234Qwer@192.168.21.10:554/Streaming/Channels/101 || manager.go
+2025-04-09 17:34:46	||INFO|| startStreamHandler || Started processing stream: rtsp://admin:1234Qwer@192.168.21.10:554/Streaming/Channels/101 || handlers.go
+2025-04-09 17:34:46	||INFO|| Request || Completed POST /start-stream in 29.402µs || middleware.go
+2025-04-09 17:34:46	||INFO|| ProcessStream || Starting to process RTSP stream: rtsp://admin:1234Qwer@192.168.21.10:554/Streaming/Channels/101 || rtsp.go
+2025-04-09 17:34:48	||INFO|| SaveVideo || Video saved with ID: 4 || database.go
+2025-04-09 17:34:48	||INFO|| UpdateVideoStatus || Video status updated to processing for video ID: 4 || database.go
+2025-04-09 17:34:48	||INFO|| SaveProcessingLog || Processing log saved for video ID: 4 || database.go
+2025-04-09 17:35:49	||INFO|| UpdateVideoStatus || Video status updated to completed for video ID: 4 || database.go
+2025-04-09 17:35:49	||ERROR|| SaveVideoMetadata || Failed to save video metadata: ERROR: column "merkle_root" of relation "video_metadata" does not exist (SQLSTATE 42703) || database.go
+2025-04-09 17:35:49	||ERROR|| StartStream || Failed to process stream stream1: failed to save video metadata: failed to save video metadata: ERROR: column "merkle_root" of relation "video_metadata" does not exist (SQLSTATE 42703) || manager.go
+2025-04-09 17:45:35	||INFO|| main || Received shutdown signal, shutting down server... || main.go
+2025-04-09 17:45:35	||INFO|| main || Server shut down gracefully || main.go
+2025-04-09 17:45:35	||INFO|| Shutdown || StreamManager shut down || manager.go
+2025-04-09 17:51:32	||INFO|| main || Configuration loaded successfully || main.go
+2025-04-09 17:51:32	||INFO|| main || Connected to database || main.go
+2025-04-09 17:51:32	||INFO|| runServer || Starting server on port 8080 || main.go
+2025-04-09 17:51:38	||INFO|| Request || Received POST request for /start-stream from [::1]:35970 || middleware.go
+2025-04-09 17:51:38	||INFO|| StartStream || Started stream stream1 with URL rtsp://admin:1234Qwer@192.168.21.10:554/Streaming/Channels/101 || manager.go
+2025-04-09 17:51:38	||INFO|| startStreamHandler || Started processing stream: rtsp://admin:1234Qwer@192.168.21.10:554/Streaming/Channels/101 || handlers.go
+2025-04-09 17:51:38	||INFO|| Request || Completed POST /start-stream in 26.389µs || middleware.go
+2025-04-09 17:51:38	||INFO|| ProcessStream || Starting to process RTSP stream: rtsp://admin:1234Qwer@192.168.21.10:554/Streaming/Channels/101 || rtsp.go
+2025-04-09 17:51:40	||INFO|| SaveVideo || Video saved with ID: 5 || database.go
+2025-04-09 17:51:40	||INFO|| UpdateVideoStatus || Video status updated to processing for video ID: 5 || database.go
+2025-04-09 17:51:40	||INFO|| SaveProcessingLog || Processing log saved for video ID: 5 || database.go
+2025-04-09 17:51:51	||INFO|| Request || Received POST request for /stop-stream from [::1]:52284 || middleware.go
+2025-04-09 17:51:51	||ERROR|| StartStream || Failed to process stream stream1: context canceled || manager.go
+2025-04-09 17:51:51	||INFO|| StopStream || Stream stream1 processing completed || manager.go
+2025-04-09 17:51:51	||INFO|| StopStream || Stopped stream stream1 || manager.go
+2025-04-09 17:51:51	||INFO|| stopStreamHandler || Stopped stream: stream1 || handlers.go
+2025-04-09 17:51:51	||INFO|| Request || Completed POST /stop-stream in 34.568µs || middleware.go
+2025-04-09 17:51:51	||INFO|| ProcessStream || FFmpeg recording for stream stream1 was canceled: context canceled || rtsp.go
+2025-04-09 17:51:51	||ERROR|| UpdateVideoStatus || Failed to update video status: context canceled || database.go
+2025-04-09 17:55:34	||INFO|| main || Received shutdown signal, shutting down server... || main.go
+2025-04-09 17:55:34	||INFO|| main || Server shut down gracefully || main.go
+2025-04-09 17:55:34	||INFO|| Shutdown || StreamManager shut down || manager.go
+2025-04-09 17:55:35	||INFO|| main || Configuration loaded successfully || main.go
+2025-04-09 17:55:35	||INFO|| main || Connected to database || main.go
+2025-04-09 17:55:35	||INFO|| runServer || Starting server on port 8080 || main.go
+2025-04-09 17:55:38	||INFO|| Request || Received POST request for /start-stream from [::1]:40578 || middleware.go
+2025-04-09 17:55:38	||INFO|| StartStream || Started stream stream1 with URL rtsp://admin:1234Qwer@192.168.21.10:554/Streaming/Channels/101 || manager.go
+2025-04-09 17:55:38	||INFO|| startStreamHandler || Started processing stream: rtsp://admin:1234Qwer@192.168.21.10:554/Streaming/Channels/101 || handlers.go
+2025-04-09 17:55:38	||INFO|| Request || Completed POST /start-stream in 26.323µs || middleware.go
+2025-04-09 17:55:38	||INFO|| ProcessStream || Starting to process RTSP stream: rtsp://admin:1234Qwer@192.168.21.10:554/Streaming/Channels/101 || rtsp.go
+2025-04-09 17:55:40	||INFO|| SaveVideo || Video saved with ID: 6 || database.go
+2025-04-09 17:55:40	||INFO|| UpdateVideoStatus || Video status updated to processing for video ID: 6 || database.go
+2025-04-09 17:55:40	||INFO|| SaveProcessingLog || Processing log saved for video ID: 6 || database.go
+2025-04-09 17:55:51	||INFO|| Request || Received POST request for /stop-stream from [::1]:38578 || middleware.go
+2025-04-09 17:55:51	||ERROR|| StartStream || Failed to process stream stream1: context canceled || manager.go
+2025-04-09 17:55:51	||INFO|| StopStream || Stream stream1 processing completed || manager.go
+2025-04-09 17:55:51	||INFO|| StopStream || Stopped stream stream1 || manager.go
+2025-04-09 17:55:51	||INFO|| stopStreamHandler || Stopped stream: stream1 || handlers.go
+2025-04-09 17:55:51	||INFO|| Request || Completed POST /stop-stream in 35.101µs || middleware.go
+2025-04-09 17:55:51	||INFO|| ProcessStream || FFmpeg recording for stream stream1 was canceled: context canceled || rtsp.go
+2025-04-09 17:55:51	||ERROR|| UpdateVideoStatus || Failed to update video status: ERROR: new row for relation "videos" violates check constraint "videos_status_check" (SQLSTATE 23514) || database.go
+2025-04-09 17:55:51	||ERROR|| ProcessStream || Failed to update video status to canceled: failed to update video status: ERROR: new row for relation "videos" violates check constraint "videos_status_check" (SQLSTATE 23514) || rtsp.go
+2025-04-09 18:00:04	||INFO|| main || Received shutdown signal, shutting down server... || main.go
+2025-04-09 18:00:04	||INFO|| main || Server shut down gracefully || main.go
+2025-04-09 18:00:04	||INFO|| Shutdown || StreamManager shut down || manager.go
+2025-04-09 18:00:55	||INFO|| main || Configuration loaded successfully || main.go
+2025-04-09 18:00:55	||INFO|| main || Connected to database || main.go
+2025-04-09 18:00:55	||INFO|| runServer || Starting server on port 8080 || main.go
+2025-04-09 18:00:57	||INFO|| Request || Received POST request for /start-stream from [::1]:46698 || middleware.go
+2025-04-09 18:00:57	||INFO|| StartStream || Started stream stream1 with URL rtsp://admin:1234Qwer@192.168.21.10:554/Streaming/Channels/101 || manager.go
+2025-04-09 18:00:57	||INFO|| startStreamHandler || Started processing stream: rtsp://admin:1234Qwer@192.168.21.10:554/Streaming/Channels/101 || handlers.go
+2025-04-09 18:00:57	||INFO|| Request || Completed POST /start-stream in 31.069µs || middleware.go
+2025-04-09 18:00:57	||INFO|| ProcessStream || Starting to process RTSP stream: rtsp://admin:1234Qwer@192.168.21.10:554/Streaming/Channels/101 || rtsp.go
+2025-04-09 18:00:59	||INFO|| SaveVideo || Video saved with ID: 7 || database.go
+2025-04-09 18:00:59	||INFO|| UpdateVideoStatus || Video status updated to processing for video ID: 7 || database.go
+2025-04-09 18:00:59	||INFO|| SaveProcessingLog || Processing log saved for video ID: 7 || database.go
+2025-04-09 18:01:07	||INFO|| Request || Received POST request for /stop-stream from [::1]:45074 || middleware.go
+2025-04-09 18:01:07	||ERROR|| StartStream || Failed to process stream stream1: context canceled || manager.go
+2025-04-09 18:01:07	||INFO|| StopStream || Stream stream1 processing completed || manager.go
+2025-04-09 18:01:07	||INFO|| StopStream || Stopped stream stream1 || manager.go
+2025-04-09 18:01:07	||INFO|| stopStreamHandler || Stopped stream: stream1 || handlers.go
+2025-04-09 18:01:07	||INFO|| Request || Completed POST /stop-stream in 34.972µs || middleware.go
+2025-04-09 18:01:07	||INFO|| ProcessStream || FFmpeg recording for stream stream1 was canceled: context canceled || rtsp.go
+2025-04-09 18:01:07	||INFO|| UpdateVideoStatus || Video status updated to canceled for video ID: 7 || database.go
+2025-04-09 18:03:00	||INFO|| main || Received shutdown signal, shutting down server... || main.go
+2025-04-09 18:03:00	||INFO|| main || Server shut down gracefully || main.go
+2025-04-09 18:03:00	||INFO|| Shutdown || StreamManager shut down || manager.go
+2025-04-09 18:09:24	||INFO|| main || Configuration loaded successfully || main.go
+2025-04-09 18:09:24	||INFO|| main || Connected to database || main.go
+2025-04-09 18:09:24	||INFO|| runServer || Starting server on port 8080 || main.go
+2025-04-09 18:09:26	||INFO|| Request || Received POST request for /start-stream from [::1]:56210 || middleware.go
+2025-04-09 18:09:26	||INFO|| StartStream || Started stream stream1 with URL rtsp://admin:1234Qwer@192.168.21.10:554/Streaming/Channels/101 || manager.go
+2025-04-09 18:09:26	||INFO|| startStreamHandler || Started processing stream: rtsp://admin:1234Qwer@192.168.21.10:554/Streaming/Channels/101 || handlers.go
+2025-04-09 18:09:26	||INFO|| Request || Completed POST /start-stream in 23.252µs || middleware.go
+2025-04-09 18:09:26	||INFO|| ProcessStream || Starting to process RTSP stream: rtsp://admin:1234Qwer@192.168.21.10:554/Streaming/Channels/101 || rtsp.go
+2025-04-09 18:09:28	||INFO|| SaveVideo || Video saved with ID: 8 || database.go
+2025-04-09 18:09:28	||INFO|| UpdateVideoStatus || Video status updated to processing for video ID: 8 || database.go
+2025-04-09 18:09:28	||INFO|| SaveProcessingLog || Processing log saved for video ID: 8 || database.go
+2025-04-09 18:09:34	||INFO|| Request || Received POST request for /stop-stream from [::1]:45678 || middleware.go
+2025-04-09 18:09:34	||INFO|| StartStream || Stream stream1 was canceled: context canceled || manager.go
+2025-04-09 18:09:34	||INFO|| StopStream || Stream stream1 processing completed || manager.go
+2025-04-09 18:09:34	||INFO|| StopStream || Stopped stream stream1 || manager.go
+2025-04-09 18:09:34	||INFO|| stopStreamHandler || Stopped stream: stream1 || handlers.go
+2025-04-09 18:09:34	||INFO|| Request || Completed POST /stop-stream in 43.287µs || middleware.go
+2025-04-09 18:09:34	||INFO|| ProcessStream || FFmpeg recording for stream stream1 was canceled: context canceled || rtsp.go
+2025-04-09 18:09:34	||INFO|| UpdateVideoStatus || Video status updated to canceled for video ID: 8 || database.go
+2025-04-09 18:20:52	||INFO|| main || Received shutdown signal, shutting down server... || main.go
+2025-04-09 18:20:52	||INFO|| main || Server shut down gracefully || main.go
+2025-04-09 18:20:52	||INFO|| Shutdown || StreamManager shut down || manager.go
+2025-04-09 18:20:54	||INFO|| main || Configuration loaded successfully || main.go
+2025-04-09 18:20:54	||INFO|| main || Connected to database || main.go
+2025-04-09 18:20:54	||INFO|| runServer || Starting server on port 8080 || main.go
+2025-04-09 18:20:55	||INFO|| Request || Received POST request for /start-stream from [::1]:52430 || middleware.go
+2025-04-09 18:20:55	||INFO|| StartStream || Started stream stream1 with URL rtsp://admin:1234Qwer@192.168.21.10:554/Streaming/Channels/101 || manager.go
+2025-04-09 18:20:55	||INFO|| startStreamHandler || Started processing stream: rtsp://admin:1234Qwer@192.168.21.10:554/Streaming/Channels/101 || handlers.go
+2025-04-09 18:20:55	||INFO|| Request || Completed POST /start-stream in 21.938µs || middleware.go
+2025-04-09 18:20:55	||INFO|| ProcessStream || Starting to process RTSP stream: rtsp://admin:1234Qwer@192.168.21.10:554/Streaming/Channels/101 || rtsp.go
+2025-04-09 18:20:57	||INFO|| SaveVideo || Video saved with ID: 9 || database.go
+2025-04-09 18:20:57	||INFO|| UpdateVideoStatus || Video status updated to processing for video ID: 9 || database.go
+2025-04-09 18:20:57	||INFO|| SaveProcessingLog || Processing log saved for video ID: 9 || database.go
+2025-04-09 18:25:13	||INFO|| Request || Received POST request for /stop-stream from [::1]:39608 || middleware.go
+2025-04-09 18:25:13	||INFO|| StartStream || Stream stream1 was canceled: context canceled || manager.go
+2025-04-09 18:25:13	||INFO|| StopStream || Stream stream1 processing completed || manager.go
+2025-04-09 18:25:13	||INFO|| StopStream || Stopped stream stream1 || manager.go
+2025-04-09 18:25:13	||INFO|| stopStreamHandler || Stopped stream: stream1 || handlers.go
+2025-04-09 18:25:13	||INFO|| Request || Completed POST /stop-stream in 44.171µs || middleware.go
+2025-04-09 18:25:13	||INFO|| ProcessStream || FFmpeg recording for stream stream1 was canceled: context canceled || rtsp.go
+2025-04-09 18:25:13	||INFO|| UpdateVideoStatus || Video status updated to canceled for video ID: 9 || database.go
+2025-04-09 18:25:13	||INFO|| ProcessStream || Keeping video file data/videos/stream1_1744212057.mp4 after legal cancellation via /stop-stream || rtsp.go
+2025-04-09 18:32:58	||INFO|| main || Received shutdown signal, shutting down server... || main.go
+2025-04-09 18:32:58	||INFO|| main || Server shut down gracefully || main.go
+2025-04-09 18:32:58	||INFO|| Shutdown || StreamManager shut down || manager.go
+2025-04-09 18:35:01	||INFO|| main || Configuration loaded successfully || main.go
+2025-04-09 18:35:01	||INFO|| main || Connected to database || main.go
+2025-04-09 18:35:01	||INFO|| runServer || Starting server on port 8080 || main.go
+2025-04-09 18:35:05	||INFO|| Request || Received POST request for /start-stream from [::1]:52168 || middleware.go
+2025-04-09 18:35:05	||INFO|| StartStream || Started stream stream1 with URL rtsp://admin:1234Qwer@192.168.21.10:554/Streaming/Channels/101 || manager.go
+2025-04-09 18:35:05	||INFO|| startStreamHandler || Started processing stream: rtsp://admin:1234Qwer@192.168.21.10:554/Streaming/Channels/101 || handlers.go
+2025-04-09 18:35:05	||INFO|| Request || Completed POST /start-stream in 34µs || middleware.go
+2025-04-09 18:35:05	||INFO|| ProcessStream || Starting to process RTSP stream: rtsp://admin:1234Qwer@192.168.21.10:554/Streaming/Channels/101 || rtsp.go
+2025-04-09 18:35:07	||INFO|| SaveVideo || Video saved with ID: 10 || database.go
+2025-04-09 18:35:07	||INFO|| UpdateVideoStatus || Video status updated to processing for video ID: 10 || database.go
+2025-04-09 18:35:07	||INFO|| SaveProcessingLog || Processing log saved for video ID: 10 || database.go
+2025-04-09 18:35:17	||INFO|| Request || Received POST request for /stop-stream from [::1]:60002 || middleware.go
+2025-04-09 18:35:17	||INFO|| StartStream || Stream stream1 was canceled: context canceled || manager.go
+2025-04-09 18:35:17	||INFO|| StopStream || Stream stream1 processing completed || manager.go
+2025-04-09 18:35:17	||INFO|| StopStream || Stopped stream stream1 || manager.go
+2025-04-09 18:35:17	||INFO|| stopStreamHandler || Stopped stream: stream1 || handlers.go
+2025-04-09 18:35:17	||INFO|| Request || Completed POST /stop-stream in 48.363µs || middleware.go
+2025-04-09 18:35:17	||INFO|| ProcessStream || Received cancellation, sending SIGINT to FFmpeg for stream stream1 || rtsp.go
+2025-04-09 18:35:17	||ERROR|| ProcessStream || FFmpeg exited with error after SIGINT: exit status 255, FFmpeg output: ffmpeg version 6.1.1-3ubuntu5 Copyright (c) 2000-2023 the FFmpeg developers
+  built with gcc 13 (Ubuntu 13.2.0-23ubuntu3)
+  configuration: --prefix=/usr --extra-version=3ubuntu5 --toolchain=hardened --libdir=/usr/lib/x86_64-linux-gnu --incdir=/usr/include/x86_64-linux-gnu --arch=amd64 --enable-gpl --disable-stripping --disable-omx --enable-gnutls --enable-libaom --enable-libass --enable-libbs2b --enable-libcaca --enable-libcdio --enable-libcodec2 --enable-libdav1d --enable-libflite --enable-libfontconfig --enable-libfreetype --enable-libfribidi --enable-libglslang --enable-libgme --enable-libgsm --enable-libharfbuzz --enable-libmp3lame --enable-libmysofa --enable-libopenjpeg --enable-libopenmpt --enable-libopus --enable-librubberband --enable-libshine --enable-libsnappy --enable-libsoxr --enable-libspeex --enable-libtheora --enable-libtwolame --enable-libvidstab --enable-libvorbis --enable-libvpx --enable-libwebp --enable-libx265 --enable-libxml2 --enable-libxvid --enable-libzimg --enable-openal --enable-opencl --enable-opengl --disable-sndio --enable-libvpl --disable-libmfx --enable-libdc1394 --enable-libdrm --enable-libiec61883 --enable-chromaprint --enable-frei0r --enable-ladspa --enable-libbluray --enable-libjack --enable-libpulse --enable-librabbitmq --enable-librist --enable-libsrt --enable-libssh --enable-libsvtav1 --enable-libx264 --enable-libzmq --enable-libzvbi --enable-lv2 --enable-sdl2 --enable-libplacebo --enable-librav1e --enable-pocketsphinx --enable-librsvg --enable-libjxl --enable-shared
+  libavutil      58. 29.100 / 58. 29.100
+  libavcodec     60. 31.102 / 60. 31.102
+  libavformat    60. 16.100 / 60. 16.100
+  libavdevice    60.  3.100 / 60.  3.100
+  libavfilter     9. 12.100 /  9. 12.100
+  libswscale      7.  5.100 /  7.  5.100
+  libswresample   4. 12.100 /  4. 12.100
+  libpostproc    57.  3.100 / 57.  3.100
+Input #0, rtsp, from 'rtsp://admin:1234Qwer@192.168.21.10:554/Streaming/Channels/101':
+  Metadata:
+    title           : Media Presentation
+  Duration: N/A, start: 0.040000, bitrate: N/A
+  Stream #0:0: Video: hevc (Main), yuvj420p(pc, bt709), 1920x1080, 24.92 tbr, 90k tbn
+Output #0, mp4, to 'data/videos/stream1_1744212907.mp4':
+  Metadata:
+    title           : Media Presentation
+    encoder         : Lavf60.16.100
+  Stream #0:0: Video: hevc (Main) (hev1 / 0x31766568), yuvj420p(pc, bt709), 1920x1080, q=2-31, 24.92 tbr, 90k tbn
+Stream mapping:
+  Stream #0:0 -> #0:0 (copy)
+Press [q] to stop, [?] for help
+size=       0kB time=00:00:00.00 bitrate=N/A speed=N/A    [mp4 @ 0x651624511940] Timestamps are unset in a packet for stream 0. This is deprecated and will stop working in the future. Fix your code to set the timestamps properly
+[mp4 @ 0x651624511940] Non-monotonic DTS in output stream 0:0; previous: 0, current: 0; changing to 1. This may result in incorrect timestamps in the output file.
+size=       0kB time=00:00:01.36 bitrate=   0.3kbits/s speed=2.54x    size=       0kB time=00:00:01.88 bitrate=   0.2kbits/s speed=1.81x    size=     256kB time=00:00:02.40 bitrate= 871.8kbits/s speed=1.53x    size=     256kB time=00:00:02.92 bitrate= 716.6kbits/s speed= 1.4x    size=     256kB time=00:00:03.40 bitrate= 615.3kbits/s speed=1.32x    size=     256kB time=00:00:03.97 bitrate= 528.3kbits/s speed=1.27x    size=     512kB time=00:00:04.49 bitrate= 934.0kbits/s speed=1.22x    size=     512kB time=00:00:05.01 bitrate= 836.8kbits/s speed= 1.2x    size=     512kB time=00:00:05.53 bitrate= 758.0kbits/s speed=1.18x    size=     512kB time=00:00:06.05 bitrate= 692.8kbits/s speed=1.16x    size=     768kB time=00:00:06.57 bitrate= 956.6kbits/s speed=1.15x    size=     768kB time=00:00:07.09 bitrate= 886.4kbits/s speed=1.13x    size=     768kB time=00:00:07.62 bitrate= 825.7kbits/s speed=1.12x    size=     768kB time=00:00:08.14 bitrate= 772.9kbits/s speed=1.11x    size=    1024kB time=00:00:08.66 bitrate= 968.5kbits/s speed=1.11x    size=    1024kB time=00:00:09.18 bitrate= 913.4kbits/s speed= 1.1x    size=    1024kB time=00:00:09.70 bitrate= 864.4kbits/s speed= 1.1x    [mp4 @ 0x651624511940] Starting second pass: moving the moov atom to the beginning of the file
+[out#0/mp4 @ 0x6516244a0100] video:1193kB audio:0kB subtitle:0kB other streams:0kB global headers:0kB muxing overhead: 0.234657%!
+(MISSING)size=    1196kB time=00:00:09.82 bitrate= 996.8kbits/s speed=1.09x    
+Exiting normally, received signal 2.
+ || rtsp.go
+2025-04-09 18:35:17	||INFO|| UpdateVideoStatus || Video status updated to canceled for video ID: 10 || database.go
+2025-04-09 18:35:17	||INFO|| ProcessStream || Keeping video file data/videos/stream1_1744212907.mp4 after legal cancellation via /stop-stream || rtsp.go
+2025-04-09 18:43:32	||INFO|| main || Received shutdown signal, shutting down server... || main.go
+2025-04-09 18:43:32	||INFO|| main || Server shut down gracefully || main.go
+2025-04-09 18:43:32	||INFO|| Shutdown || StreamManager shut down || manager.go
+2025-04-09 18:43:33	||INFO|| main || Configuration loaded successfully || main.go
+2025-04-09 18:43:33	||INFO|| main || Connected to database || main.go
+2025-04-09 18:43:33	||INFO|| runServer || Starting server on port 8080 || main.go
+2025-04-09 18:43:36	||INFO|| Request || Received POST request for /start-stream from [::1]:58728 || middleware.go
+2025-04-09 18:43:36	||INFO|| StartStream || Started stream stream1 with URL rtsp://admin:1234Qwer@192.168.21.10:554/Streaming/Channels/101 || manager.go
+2025-04-09 18:43:36	||INFO|| startStreamHandler || Started processing stream: rtsp://admin:1234Qwer@192.168.21.10:554/Streaming/Channels/101 || handlers.go
+2025-04-09 18:43:36	||INFO|| Request || Completed POST /start-stream in 23.206µs || middleware.go
+2025-04-09 18:43:36	||INFO|| ProcessStream || Starting to process RTSP stream: rtsp://admin:1234Qwer@192.168.21.10:554/Streaming/Channels/101 || rtsp.go
+2025-04-09 18:43:38	||INFO|| SaveVideo || Video saved with ID: 11 || database.go
+2025-04-09 18:43:38	||INFO|| UpdateVideoStatus || Video status updated to processing for video ID: 11 || database.go
+2025-04-09 18:43:38	||INFO|| SaveProcessingLog || Processing log saved for video ID: 11 || database.go
+2025-04-09 18:43:48	||INFO|| Request || Received POST request for /stop-stream from [::1]:33194 || middleware.go
+2025-04-09 18:43:48	||INFO|| StartStream || Stream stream1 was canceled: context canceled || manager.go
+2025-04-09 18:43:48	||INFO|| StopStream || Stream stream1 processing completed || manager.go
+2025-04-09 18:43:48	||INFO|| StopStream || Stopped stream stream1 || manager.go
+2025-04-09 18:43:48	||INFO|| stopStreamHandler || Stopped stream: stream1 || handlers.go
+2025-04-09 18:43:48	||INFO|| Request || Completed POST /stop-stream in 35.406µs || middleware.go
+2025-04-09 18:43:48	||INFO|| ProcessStream || Received cancellation, sending SIGINT to FFmpeg for stream stream1 || rtsp.go
+2025-04-09 18:43:48	||ERROR|| ProcessStream || FFmpeg exited with error after SIGINT: exit status 255, FFmpeg output: ffmpeg version 6.1.1-3ubuntu5 Copyright (c) 2000-2023 the FFmpeg developers
+  built with gcc 13 (Ubuntu 13.2.0-23ubuntu3)
+  configuration: --prefix=/usr --extra-version=3ubuntu5 --toolchain=hardened --libdir=/usr/lib/x86_64-linux-gnu --incdir=/usr/include/x86_64-linux-gnu --arch=amd64 --enable-gpl --disable-stripping --disable-omx --enable-gnutls --enable-libaom --enable-libass --enable-libbs2b --enable-libcaca --enable-libcdio --enable-libcodec2 --enable-libdav1d --enable-libflite --enable-libfontconfig --enable-libfreetype --enable-libfribidi --enable-libglslang --enable-libgme --enable-libgsm --enable-libharfbuzz --enable-libmp3lame --enable-libmysofa --enable-libopenjpeg --enable-libopenmpt --enable-libopus --enable-librubberband --enable-libshine --enable-libsnappy --enable-libsoxr --enable-libspeex --enable-libtheora --enable-libtwolame --enable-libvidstab --enable-libvorbis --enable-libvpx --enable-libwebp --enable-libx265 --enable-libxml2 --enable-libxvid --enable-libzimg --enable-openal --enable-opencl --enable-opengl --disable-sndio --enable-libvpl --disable-libmfx --enable-libdc1394 --enable-libdrm --enable-libiec61883 --enable-chromaprint --enable-frei0r --enable-ladspa --enable-libbluray --enable-libjack --enable-libpulse --enable-librabbitmq --enable-librist --enable-libsrt --enable-libssh --enable-libsvtav1 --enable-libx264 --enable-libzmq --enable-libzvbi --enable-lv2 --enable-sdl2 --enable-libplacebo --enable-librav1e --enable-pocketsphinx --enable-librsvg --enable-libjxl --enable-shared
+  libavutil      58. 29.100 / 58. 29.100
+  libavcodec     60. 31.102 / 60. 31.102
+  libavformat    60. 16.100 / 60. 16.100
+  libavdevice    60.  3.100 / 60.  3.100
+  libavfilter     9. 12.100 /  9. 12.100
+  libswscale      7.  5.100 /  7.  5.100
+  libswresample   4. 12.100 /  4. 12.100
+  libpostproc    57.  3.100 / 57.  3.100
+Input #0, rtsp, from 'rtsp://admin:1234Qwer@192.168.21.10:554/Streaming/Channels/101':
+  Metadata:
+    title           : Media Presentation
+  Duration: N/A, start: 1744213418.190200, bitrate: N/A
+  Stream #0:0: Video: hevc (Main), yuvj420p(pc, bt709), 1920x1080, 90k tbr, 90k tbn
+Output #0, mp4, to 'data/videos/stream1_1744213418.mp4':
+  Metadata:
+    title           : Media Presentation
+    encoder         : Lavf60.16.100
+  Stream #0:0: Video: hevc (Main) (hev1 / 0x31766568), yuvj420p(pc, bt709), 1920x1080, q=2-31, 90k tbr, 90k tbn
+Stream mapping:
+  Stream #0:0 -> #0:0 (copy)
+Press [q] to stop, [?] for help
+size=       0kB time=00:00:00.00 bitrate=N/A speed=N/A    [mp4 @ 0x64706d029e00] Timestamps are unset in a packet for stream 0. This is deprecated and will stop working in the future. Fix your code to set the timestamps properly
+[mp4 @ 0x64706d029e00] Non-monotonic DTS in output stream 0:0; previous: 0, current: 0; changing to 1. This may result in incorrect timestamps in the output file.
+size=       0kB time=00:00:01.37 bitrate=   0.3kbits/s speed=2.66x    size=       0kB time=00:00:01.90 bitrate=   0.2kbits/s speed=1.83x    size=     256kB time=00:00:02.40 bitrate= 871.9kbits/s speed=1.56x    size=     256kB time=00:00:02.95 bitrate= 710.6kbits/s speed=1.41x    size=     256kB time=00:00:03.49 bitrate= 600.8kbits/s speed=1.33x    size=     256kB time=00:00:04.00 bitrate= 523.1kbits/s speed=1.27x    size=     512kB time=00:00:04.52 bitrate= 926.0kbits/s speed=1.23x    size=     512kB time=00:00:05.03 bitrate= 833.9kbits/s speed=1.21x    size=     512kB time=00:00:05.54 bitrate= 755.8kbits/s speed=1.18x    size=     512kB time=00:00:06.05 bitrate= 692.9kbits/s speed=1.17x    size=     768kB time=00:00:06.58 bitrate= 956.2kbits/s speed=1.15x    size=     768kB time=00:00:07.08 bitrate= 887.4kbits/s speed=1.14x    size=     768kB time=00:00:07.59 bitrate= 828.7kbits/s speed=1.13x    size=     768kB time=00:00:08.11 bitrate= 775.7kbits/s speed=1.12x    size=    1024kB time=00:00:08.65 bitrate= 969.8kbits/s speed=1.11x    size=    1024kB time=00:00:09.15 bitrate= 916.7kbits/s speed= 1.1x    size=    1024kB time=00:00:09.67 bitrate= 867.5kbits/s speed= 1.1x    size=    1024kB time=00:00:10.19 bitrate= 823.2kbits/s speed=1.09x    [mp4 @ 0x64706d029e00] Starting second pass: moving the moov atom to the beginning of the file
+[out#0/mp4 @ 0x64706cfc7180] video:1251kB audio:0kB subtitle:0kB other streams:0kB global headers:0kB muxing overhead: 0.345040%
+size=    1256kB time=00:00:10.27 bitrate=1001.5kbits/s speed=1.09x    
+Exiting normally, received signal 2.
+ || rtsp.go
+2025-04-09 18:43:48	||INFO|| UpdateVideoStatus || Video status updated to canceled for video ID: 11 || database.go
+2025-04-09 18:43:48	||INFO|| ProcessStream || Keeping video file data/videos/stream1_1744213418.mp4 after legal cancellation via /stop-stream || rtsp.go
+2025-04-09 19:04:48	||INFO|| main || Received shutdown signal, shutting down server... || main.go
+2025-04-09 19:04:48	||INFO|| main || Server shut down gracefully || main.go
+2025-04-09 19:04:48	||INFO|| Shutdown || StreamManager shut down || manager.go
+2025-04-09 19:04:48	||INFO|| main || Configuration loaded successfully || main.go
+2025-04-09 19:04:48	||INFO|| main || Connected to database || main.go
+2025-04-09 19:04:48	||INFO|| runServer || Starting server on port 8080 || main.go
+2025-04-09 19:04:51	||INFO|| Request || Received POST request for /start-stream from [::1]:38246 || middleware.go
+2025-04-09 19:04:51	||INFO|| StartStream || Started stream stream1 with URL rtsp://admin:1234Qwer@192.168.21.10:554/Streaming/Channels/101 || manager.go
+2025-04-09 19:04:51	||INFO|| startStreamHandler || Started processing stream: rtsp://admin:1234Qwer@192.168.21.10:554/Streaming/Channels/101 || handlers.go
+2025-04-09 19:04:51	||INFO|| Request || Completed POST /start-stream in 42.308µs || middleware.go
+2025-04-09 19:04:51	||INFO|| ProcessStream || Starting to process RTSP stream: rtsp://admin:1234Qwer@192.168.21.10:554/Streaming/Channels/101 || rtsp.go
+2025-04-09 19:04:53	||INFO|| SaveVideo || Video saved with ID: 12 || database.go
+2025-04-09 19:04:53	||INFO|| UpdateVideoStatus || Video status updated to processing for video ID: 12 || database.go
+2025-04-09 19:04:53	||INFO|| SaveProcessingLog || Processing log saved for video ID: 12 || database.go
+2025-04-09 19:05:06	||INFO|| Request || Received POST request for /stop-stream from [::1]:47172 || middleware.go
+2025-04-09 19:05:06	||INFO|| StartStream || Stream stream1 was canceled: context canceled || manager.go
+2025-04-09 19:05:06	||INFO|| StopStream || Stream stream1 processing completed || manager.go
+2025-04-09 19:05:06	||INFO|| StopStream || Stopped stream stream1 || manager.go
+2025-04-09 19:05:06	||INFO|| stopStreamHandler || Stopped stream: stream1 || handlers.go
+2025-04-09 19:05:06	||INFO|| Request || Completed POST /stop-stream in 88.011µs || middleware.go
+2025-04-09 19:05:06	||INFO|| ProcessStream || Received cancellation, sending SIGINT to FFmpeg for stream stream1 || rtsp.go
+2025-04-09 19:05:16	||WARNING|| ProcessStream || FFmpeg did not exit within 10 seconds, killing process || rtsp.go
+2025-04-09 19:05:16	||INFO|| UpdateVideoStatus || Video status updated to canceled for video ID: 12 || database.go
+2025-04-09 19:05:16	||INFO|| ProcessStream || Keeping video file data/videos/stream1_1744214693.mkv after legal cancellation via /stop-stream || rtsp.go
+2025-04-09 19:05:16	||INFO|| ProcessStream || Keeping video file data/videos/stream1_1744214693.mp4 after legal cancellation via /stop-stream || rtsp.go
+2025-04-09 19:26:06	||INFO|| main || Received shutdown signal, shutting down server... || main.go
+2025-04-09 19:26:06	||INFO|| main || Server shut down gracefully || main.go
+2025-04-09 19:26:06	||INFO|| Shutdown || StreamManager shut down || manager.go
+2025-04-09 19:26:08	||INFO|| main || Configuration loaded successfully || main.go
+2025-04-09 19:26:08	||INFO|| main || Connected to database || main.go
+2025-04-09 19:26:08	||INFO|| runServer || Starting server on port 8080 || main.go
+2025-04-09 19:26:11	||INFO|| Request || Received POST request for /start-stream from [::1]:39960 || middleware.go
+2025-04-09 19:26:11	||INFO|| StartStream || Started stream stream1 with URL rtsp://admin:1234Qwer@192.168.21.10:554/Streaming/Channels/101 || manager.go
+2025-04-09 19:26:11	||INFO|| startStreamHandler || Started processing stream: rtsp://admin:1234Qwer@192.168.21.10:554/Streaming/Channels/101 || handlers.go
+2025-04-09 19:26:11	||INFO|| Request || Completed POST /start-stream in 26.493µs || middleware.go
+2025-04-09 19:26:11	||INFO|| ProcessStream || Starting to process RTSP stream: rtsp://admin:1234Qwer@192.168.21.10:554/Streaming/Channels/101 || rtsp.go
+2025-04-09 19:26:12	||INFO|| SaveVideo || Video saved with ID: 13 || database.go
+2025-04-09 19:26:12	||INFO|| UpdateVideoStatus || Video status updated to processing for video ID: 13 || database.go
+2025-04-09 19:26:12	||INFO|| SaveProcessingLog || Processing log saved for video ID: 13 || database.go
+2025-04-09 19:26:30	||INFO|| Request || Received POST request for /stop-stream from [::1]:52822 || middleware.go
+2025-04-09 19:26:30	||INFO|| ProcessStream || Received cancellation, sending 'q' to FFmpeg for stream stream1 || rtsp.go
+2025-04-09 19:26:40	||WARNING|| StopStream || Stream stream1 did not stop within 10 seconds, forcing stop || manager.go
+2025-04-09 19:26:40	||INFO|| StopStream || Stopped stream stream1 || manager.go
+2025-04-09 19:26:40	||INFO|| stopStreamHandler || Stopped stream: stream1 || handlers.go
+2025-04-09 19:26:40	||INFO|| Request || Completed POST /stop-stream in 10.00027709s || middleware.go
+2025-04-09 19:26:45	||WARNING|| ProcessStream || FFmpeg did not exit within 15 seconds, killing process || rtsp.go
+2025-04-09 19:26:45	||INFO|| UpdateVideoStatus || Video status updated to canceled for video ID: 13 || database.go
+2025-04-09 19:26:45	||INFO|| ProcessStream || Keeping video file data/videos/stream1_1744215972.mkv after legal cancellation via /stop-stream || rtsp.go
+2025-04-09 19:26:45	||INFO|| ProcessStream || Keeping video file data/videos/stream1_1744215972.mp4 after legal cancellation via /stop-stream || rtsp.go
+2025-04-09 19:26:45	||INFO|| ProcessStream || FFmpeg recording process for stream stream1 completed || rtsp.go
+2025-04-09 19:26:45	||INFO|| ProcessStream || Proceeding with post-processing for videoID 13 || rtsp.go
+2025-04-09 19:26:45	||INFO|| ProcessStream || Starting HLS generation for videoID 13 || rtsp.go
+2025-04-09 19:26:45	||INFO|| ProcessStream || Starting Merkle tree construction for videoID 13 || rtsp.go
+2025-04-09 19:26:45	||INFO|| ProcessStream || Starting thumbnail creation for videoID 13 || rtsp.go
+2025-04-09 19:26:45	||INFO|| ProcessStream || Preparing to save video metadata for videoID 13 || rtsp.go
+2025-04-09 19:26:45	||INFO|| ProcessStream || Successfully saved video metadata for videoID 13 || rtsp.go
+2025-04-09 19:26:45	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 13, block index: 0 || database.go
+2025-04-09 19:26:45	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 13, block index: 1 || database.go
+2025-04-09 19:26:45	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 13, block index: 2 || database.go
+2025-04-09 19:26:45	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 13, block index: 3 || database.go
+2025-04-09 19:26:45	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 13, block index: 4 || database.go
+2025-04-09 19:26:45	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 13, block index: 5 || database.go
+2025-04-09 19:26:45	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 13, block index: 6 || database.go
+2025-04-09 19:26:45	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 13, block index: 7 || database.go
+2025-04-09 19:26:45	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 13, block index: 8 || database.go
+2025-04-09 19:26:45	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 13, block index: 9 || database.go
+2025-04-09 19:26:45	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 13, block index: 10 || database.go
+2025-04-09 19:26:45	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 13, block index: 11 || database.go
+2025-04-09 19:26:45	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 13, block index: 12 || database.go
+2025-04-09 19:26:45	||INFO|| SaveThumbnail || Thumbnail saved for video ID: 13 || database.go
+2025-04-09 19:26:52	||INFO|| ProcessStream || HLS generated at data/videos/stream1_1744215972_hls/playlist.m3u8 for videoID 13 || rtsp.go
+2025-04-09 19:26:52	||INFO|| SaveProcessingLog || Processing log saved for video ID: 13 || database.go
+2025-04-09 19:26:52	||INFO|| ProcessStream || Successfully processed RTSP stream: rtsp://admin:1234Qwer@192.168.21.10:554/Streaming/Channels/101 || rtsp.go
+2025-04-09 19:27:47	||INFO|| Request || Received POST request for /start-stream from [::1]:42570 || middleware.go
+2025-04-09 19:27:47	||INFO|| StartStream || Started stream stream1 with URL rtsp://admin:1234Qwer@192.168.21.10:554/Streaming/Channels/101 || manager.go
+2025-04-09 19:27:47	||INFO|| startStreamHandler || Started processing stream: rtsp://admin:1234Qwer@192.168.21.10:554/Streaming/Channels/101 || handlers.go
+2025-04-09 19:27:47	||INFO|| Request || Completed POST /start-stream in 25.056µs || middleware.go
+2025-04-09 19:27:47	||INFO|| ProcessStream || Starting to process RTSP stream: rtsp://admin:1234Qwer@192.168.21.10:554/Streaming/Channels/101 || rtsp.go
+2025-04-09 19:27:49	||INFO|| SaveVideo || Video saved with ID: 14 || database.go
+2025-04-09 19:27:49	||INFO|| UpdateVideoStatus || Video status updated to processing for video ID: 14 || database.go
+2025-04-09 19:27:49	||INFO|| SaveProcessingLog || Processing log saved for video ID: 14 || database.go
+2025-04-09 19:27:56	||INFO|| Request || Received POST request for /start-stream from [::1]:46704 || middleware.go
+2025-04-09 19:27:56	||ERROR|| StartStream || Stream stream1 already exists || manager.go
+2025-04-09 19:27:56	||INFO|| Request || Completed POST /start-stream in 34.964µs || middleware.go
+2025-04-09 19:28:01	||INFO|| Request || Received POST request for /start-stream from [::1]:45708 || middleware.go
+2025-04-09 19:28:01	||INFO|| StartStream || Started stream stream2 with URL rtsp://admin:1234Qwer@192.168.21.10:554/Streaming/Channels/101 || manager.go
+2025-04-09 19:28:01	||INFO|| startStreamHandler || Started processing stream: rtsp://admin:1234Qwer@192.168.21.10:554/Streaming/Channels/101 || handlers.go
+2025-04-09 19:28:01	||INFO|| Request || Completed POST /start-stream in 25.25µs || middleware.go
+2025-04-09 19:28:01	||INFO|| ProcessStream || Starting to process RTSP stream: rtsp://admin:1234Qwer@192.168.21.10:554/Streaming/Channels/101 || rtsp.go
+2025-04-09 19:28:03	||INFO|| SaveVideo || Video saved with ID: 15 || database.go
+2025-04-09 19:28:03	||INFO|| UpdateVideoStatus || Video status updated to processing for video ID: 15 || database.go
+2025-04-09 19:28:03	||INFO|| SaveProcessingLog || Processing log saved for video ID: 15 || database.go
+2025-04-09 19:28:07	||INFO|| Request || Received POST request for /start-stream from [::1]:45724 || middleware.go
+2025-04-09 19:28:07	||INFO|| StartStream || Started stream stream3 with URL rtsp://admin:1234Qwer@192.168.21.10:554/Streaming/Channels/101 || manager.go
+2025-04-09 19:28:07	||INFO|| startStreamHandler || Started processing stream: rtsp://admin:1234Qwer@192.168.21.10:554/Streaming/Channels/101 || handlers.go
+2025-04-09 19:28:07	||INFO|| Request || Completed POST /start-stream in 70.86µs || middleware.go
+2025-04-09 19:28:07	||INFO|| ProcessStream || Starting to process RTSP stream: rtsp://admin:1234Qwer@192.168.21.10:554/Streaming/Channels/101 || rtsp.go
+2025-04-09 19:28:09	||INFO|| SaveVideo || Video saved with ID: 16 || database.go
+2025-04-09 19:28:09	||INFO|| UpdateVideoStatus || Video status updated to processing for video ID: 16 || database.go
+2025-04-09 19:28:09	||INFO|| SaveProcessingLog || Processing log saved for video ID: 16 || database.go
+2025-04-09 19:28:17	||INFO|| Request || Received POST request for /stop-stream from [::1]:51014 || middleware.go
+2025-04-09 19:28:17	||INFO|| ProcessStream || Received cancellation, sending 'q' to FFmpeg for stream stream1 || rtsp.go
+2025-04-09 19:28:27	||WARNING|| StopStream || Stream stream1 did not stop within 10 seconds, forcing stop || manager.go
+2025-04-09 19:28:27	||INFO|| StopStream || Stopped stream stream1 || manager.go
+2025-04-09 19:28:27	||INFO|| stopStreamHandler || Stopped stream: stream1 || handlers.go
+2025-04-09 19:28:27	||INFO|| Request || Completed POST /stop-stream in 10.000134508s || middleware.go
+2025-04-09 19:28:32	||WARNING|| ProcessStream || FFmpeg did not exit within 15 seconds, killing process || rtsp.go
+2025-04-09 19:28:32	||INFO|| UpdateVideoStatus || Video status updated to canceled for video ID: 14 || database.go
+2025-04-09 19:28:32	||INFO|| ProcessStream || Keeping video file data/videos/stream1_1744216069.mkv after legal cancellation via /stop-stream || rtsp.go
+2025-04-09 19:28:32	||INFO|| ProcessStream || Keeping video file data/videos/stream1_1744216069.mp4 after legal cancellation via /stop-stream || rtsp.go
+2025-04-09 19:28:32	||INFO|| ProcessStream || FFmpeg recording process for stream stream1 completed || rtsp.go
+2025-04-09 19:28:32	||INFO|| ProcessStream || Proceeding with post-processing for videoID 14 || rtsp.go
+2025-04-09 19:28:32	||INFO|| ProcessStream || Starting HLS generation for videoID 14 || rtsp.go
+2025-04-09 19:28:32	||INFO|| ProcessStream || Starting Merkle tree construction for videoID 14 || rtsp.go
+2025-04-09 19:28:32	||INFO|| ProcessStream || Starting thumbnail creation for videoID 14 || rtsp.go
+2025-04-09 19:28:32	||INFO|| ProcessStream || Preparing to save video metadata for videoID 14 || rtsp.go
+2025-04-09 19:28:32	||INFO|| ProcessStream || Successfully saved video metadata for videoID 14 || rtsp.go
+2025-04-09 19:28:32	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 14, block index: 0 || database.go
+2025-04-09 19:28:32	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 14, block index: 1 || database.go
+2025-04-09 19:28:32	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 14, block index: 2 || database.go
+2025-04-09 19:28:32	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 14, block index: 3 || database.go
+2025-04-09 19:28:32	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 14, block index: 4 || database.go
+2025-04-09 19:28:32	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 14, block index: 5 || database.go
+2025-04-09 19:28:32	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 14, block index: 6 || database.go
+2025-04-09 19:28:32	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 14, block index: 7 || database.go
+2025-04-09 19:28:32	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 14, block index: 8 || database.go
+2025-04-09 19:28:32	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 14, block index: 9 || database.go
+2025-04-09 19:28:32	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 14, block index: 10 || database.go
+2025-04-09 19:28:32	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 14, block index: 11 || database.go
+2025-04-09 19:28:32	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 14, block index: 12 || database.go
+2025-04-09 19:28:32	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 14, block index: 13 || database.go
+2025-04-09 19:28:32	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 14, block index: 14 || database.go
+2025-04-09 19:28:32	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 14, block index: 15 || database.go
+2025-04-09 19:28:32	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 14, block index: 16 || database.go
+2025-04-09 19:28:32	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 14, block index: 17 || database.go
+2025-04-09 19:28:32	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 14, block index: 18 || database.go
+2025-04-09 19:28:32	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 14, block index: 19 || database.go
+2025-04-09 19:28:32	||INFO|| SaveThumbnail || Thumbnail saved for video ID: 14 || database.go
+2025-04-09 19:28:45	||INFO|| ProcessStream || HLS generated at data/videos/stream1_1744216069_hls/playlist.m3u8 for videoID 14 || rtsp.go
+2025-04-09 19:28:45	||INFO|| SaveProcessingLog || Processing log saved for video ID: 14 || database.go
+2025-04-09 19:28:45	||INFO|| ProcessStream || Successfully processed RTSP stream: rtsp://admin:1234Qwer@192.168.21.10:554/Streaming/Channels/101 || rtsp.go
+2025-04-09 19:29:03	||INFO|| Request || Received POST request for /stop-stream from [::1]:38276 || middleware.go
+2025-04-09 19:29:03	||INFO|| ProcessStream || Received cancellation, sending 'q' to FFmpeg for stream stream2 || rtsp.go
+2025-04-09 19:29:13	||WARNING|| StopStream || Stream stream2 did not stop within 10 seconds, forcing stop || manager.go
+2025-04-09 19:29:13	||INFO|| StopStream || Stopped stream stream2 || manager.go
+2025-04-09 19:29:13	||INFO|| stopStreamHandler || Stopped stream: stream2 || handlers.go
+2025-04-09 19:29:13	||INFO|| Request || Completed POST /stop-stream in 10.00087515s || middleware.go
+2025-04-09 19:29:18	||WARNING|| ProcessStream || FFmpeg did not exit within 15 seconds, killing process || rtsp.go
+2025-04-09 19:29:18	||INFO|| UpdateVideoStatus || Video status updated to canceled for video ID: 15 || database.go
+2025-04-09 19:29:18	||INFO|| ProcessStream || Keeping video file data/videos/stream2_1744216083.mkv after legal cancellation via /stop-stream || rtsp.go
+2025-04-09 19:29:19	||INFO|| ProcessStream || Keeping video file data/videos/stream2_1744216083.mp4 after legal cancellation via /stop-stream || rtsp.go
+2025-04-09 19:29:19	||INFO|| ProcessStream || FFmpeg recording process for stream stream2 completed || rtsp.go
+2025-04-09 19:29:19	||INFO|| ProcessStream || Proceeding with post-processing for videoID 15 || rtsp.go
+2025-04-09 19:29:19	||INFO|| ProcessStream || Starting HLS generation for videoID 15 || rtsp.go
+2025-04-09 19:29:19	||INFO|| ProcessStream || Starting Merkle tree construction for videoID 15 || rtsp.go
+2025-04-09 19:29:19	||INFO|| ProcessStream || Starting thumbnail creation for videoID 15 || rtsp.go
+2025-04-09 19:29:19	||INFO|| ProcessStream || Preparing to save video metadata for videoID 15 || rtsp.go
+2025-04-09 19:29:19	||INFO|| ProcessStream || Successfully saved video metadata for videoID 15 || rtsp.go
+2025-04-09 19:29:19	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 15, block index: 0 || database.go
+2025-04-09 19:29:19	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 15, block index: 1 || database.go
+2025-04-09 19:29:19	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 15, block index: 2 || database.go
+2025-04-09 19:29:19	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 15, block index: 3 || database.go
+2025-04-09 19:29:19	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 15, block index: 4 || database.go
+2025-04-09 19:29:19	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 15, block index: 5 || database.go
+2025-04-09 19:29:19	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 15, block index: 6 || database.go
+2025-04-09 19:29:19	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 15, block index: 7 || database.go
+2025-04-09 19:29:19	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 15, block index: 8 || database.go
+2025-04-09 19:29:19	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 15, block index: 9 || database.go
+2025-04-09 19:29:19	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 15, block index: 10 || database.go
+2025-04-09 19:29:19	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 15, block index: 11 || database.go
+2025-04-09 19:29:19	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 15, block index: 12 || database.go
+2025-04-09 19:29:19	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 15, block index: 13 || database.go
+2025-04-09 19:29:19	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 15, block index: 14 || database.go
+2025-04-09 19:29:19	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 15, block index: 15 || database.go
+2025-04-09 19:29:19	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 15, block index: 16 || database.go
+2025-04-09 19:29:19	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 15, block index: 17 || database.go
+2025-04-09 19:29:19	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 15, block index: 18 || database.go
+2025-04-09 19:29:19	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 15, block index: 19 || database.go
+2025-04-09 19:29:19	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 15, block index: 20 || database.go
+2025-04-09 19:29:19	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 15, block index: 21 || database.go
+2025-04-09 19:29:19	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 15, block index: 22 || database.go
+2025-04-09 19:29:19	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 15, block index: 23 || database.go
+2025-04-09 19:29:19	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 15, block index: 24 || database.go
+2025-04-09 19:29:19	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 15, block index: 25 || database.go
+2025-04-09 19:29:19	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 15, block index: 26 || database.go
+2025-04-09 19:29:19	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 15, block index: 27 || database.go
+2025-04-09 19:29:19	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 15, block index: 28 || database.go
+2025-04-09 19:29:19	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 15, block index: 29 || database.go
+2025-04-09 19:29:19	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 15, block index: 30 || database.go
+2025-04-09 19:29:19	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 15, block index: 31 || database.go
+2025-04-09 19:29:19	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 15, block index: 32 || database.go
+2025-04-09 19:29:19	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 15, block index: 33 || database.go
+2025-04-09 19:29:19	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 15, block index: 34 || database.go
+2025-04-09 19:29:19	||INFO|| SaveThumbnail || Thumbnail saved for video ID: 15 || database.go
+2025-04-09 19:29:41	||INFO|| ProcessStream || HLS generated at data/videos/stream2_1744216083_hls/playlist.m3u8 for videoID 15 || rtsp.go
+2025-04-09 19:29:41	||INFO|| SaveProcessingLog || Processing log saved for video ID: 15 || database.go
+2025-04-09 19:29:41	||INFO|| ProcessStream || Successfully processed RTSP stream: rtsp://admin:1234Qwer@192.168.21.10:554/Streaming/Channels/101 || rtsp.go
+2025-04-09 19:29:57	||INFO|| Request || Received POST request for /stop-stream from [::1]:57658 || middleware.go
+2025-04-09 19:29:57	||INFO|| ProcessStream || Received cancellation, sending 'q' to FFmpeg for stream stream3 || rtsp.go
+2025-04-09 19:30:07	||WARNING|| StopStream || Stream stream3 did not stop within 10 seconds, forcing stop || manager.go
+2025-04-09 19:30:07	||INFO|| StopStream || Stopped stream stream3 || manager.go
+2025-04-09 19:30:07	||INFO|| stopStreamHandler || Stopped stream: stream3 || handlers.go
+2025-04-09 19:30:07	||INFO|| Request || Completed POST /stop-stream in 10.000895186s || middleware.go
+2025-04-09 19:30:12	||WARNING|| ProcessStream || FFmpeg did not exit within 15 seconds, killing process || rtsp.go
+2025-04-09 19:30:12	||INFO|| UpdateVideoStatus || Video status updated to canceled for video ID: 16 || database.go
+2025-04-09 19:30:12	||INFO|| ProcessStream || Keeping video file data/videos/stream3_1744216089.mkv after legal cancellation via /stop-stream || rtsp.go
+2025-04-09 19:30:12	||INFO|| ProcessStream || Keeping video file data/videos/stream3_1744216089.mp4 after legal cancellation via /stop-stream || rtsp.go
+2025-04-09 19:30:12	||INFO|| ProcessStream || FFmpeg recording process for stream stream3 completed || rtsp.go
+2025-04-09 19:30:12	||INFO|| ProcessStream || Proceeding with post-processing for videoID 16 || rtsp.go
+2025-04-09 19:30:12	||INFO|| ProcessStream || Starting HLS generation for videoID 16 || rtsp.go
+2025-04-09 19:30:12	||INFO|| ProcessStream || Starting Merkle tree construction for videoID 16 || rtsp.go
+2025-04-09 19:30:12	||INFO|| ProcessStream || Starting thumbnail creation for videoID 16 || rtsp.go
+2025-04-09 19:30:12	||INFO|| ProcessStream || Preparing to save video metadata for videoID 16 || rtsp.go
+2025-04-09 19:30:12	||INFO|| ProcessStream || Successfully saved video metadata for videoID 16 || rtsp.go
+2025-04-09 19:30:12	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 16, block index: 0 || database.go
+2025-04-09 19:30:12	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 16, block index: 1 || database.go
+2025-04-09 19:30:12	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 16, block index: 2 || database.go
+2025-04-09 19:30:12	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 16, block index: 3 || database.go
+2025-04-09 19:30:12	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 16, block index: 4 || database.go
+2025-04-09 19:30:12	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 16, block index: 5 || database.go
+2025-04-09 19:30:12	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 16, block index: 6 || database.go
+2025-04-09 19:30:12	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 16, block index: 7 || database.go
+2025-04-09 19:30:12	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 16, block index: 8 || database.go
+2025-04-09 19:30:12	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 16, block index: 9 || database.go
+2025-04-09 19:30:12	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 16, block index: 10 || database.go
+2025-04-09 19:30:12	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 16, block index: 11 || database.go
+2025-04-09 19:30:12	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 16, block index: 12 || database.go
+2025-04-09 19:30:12	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 16, block index: 13 || database.go
+2025-04-09 19:30:12	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 16, block index: 14 || database.go
+2025-04-09 19:30:12	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 16, block index: 15 || database.go
+2025-04-09 19:30:12	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 16, block index: 16 || database.go
+2025-04-09 19:30:12	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 16, block index: 17 || database.go
+2025-04-09 19:30:12	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 16, block index: 18 || database.go
+2025-04-09 19:30:12	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 16, block index: 19 || database.go
+2025-04-09 19:30:12	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 16, block index: 20 || database.go
+2025-04-09 19:30:12	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 16, block index: 21 || database.go
+2025-04-09 19:30:12	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 16, block index: 22 || database.go
+2025-04-09 19:30:12	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 16, block index: 23 || database.go
+2025-04-09 19:30:12	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 16, block index: 24 || database.go
+2025-04-09 19:30:12	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 16, block index: 25 || database.go
+2025-04-09 19:30:12	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 16, block index: 26 || database.go
+2025-04-09 19:30:12	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 16, block index: 27 || database.go
+2025-04-09 19:30:12	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 16, block index: 28 || database.go
+2025-04-09 19:30:12	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 16, block index: 29 || database.go
+2025-04-09 19:30:12	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 16, block index: 30 || database.go
+2025-04-09 19:30:12	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 16, block index: 31 || database.go
+2025-04-09 19:30:12	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 16, block index: 32 || database.go
+2025-04-09 19:30:12	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 16, block index: 33 || database.go
+2025-04-09 19:30:12	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 16, block index: 34 || database.go
+2025-04-09 19:30:12	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 16, block index: 35 || database.go
+2025-04-09 19:30:12	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 16, block index: 36 || database.go
+2025-04-09 19:30:12	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 16, block index: 37 || database.go
+2025-04-09 19:30:12	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 16, block index: 38 || database.go
+2025-04-09 19:30:12	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 16, block index: 39 || database.go
+2025-04-09 19:30:12	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 16, block index: 40 || database.go
+2025-04-09 19:30:12	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 16, block index: 41 || database.go
+2025-04-09 19:30:12	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 16, block index: 42 || database.go
+2025-04-09 19:30:12	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 16, block index: 43 || database.go
+2025-04-09 19:30:12	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 16, block index: 44 || database.go
+2025-04-09 19:30:12	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 16, block index: 45 || database.go
+2025-04-09 19:30:12	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 16, block index: 46 || database.go
+2025-04-09 19:30:12	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 16, block index: 47 || database.go
+2025-04-09 19:30:12	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 16, block index: 48 || database.go
+2025-04-09 19:30:12	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 16, block index: 49 || database.go
+2025-04-09 19:30:12	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 16, block index: 50 || database.go
+2025-04-09 19:30:12	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 16, block index: 51 || database.go
+2025-04-09 19:30:12	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 16, block index: 52 || database.go
+2025-04-09 19:30:12	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 16, block index: 53 || database.go
+2025-04-09 19:30:12	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 16, block index: 54 || database.go
+2025-04-09 19:30:12	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 16, block index: 55 || database.go
+2025-04-09 19:30:12	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 16, block index: 56 || database.go
+2025-04-09 19:30:12	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 16, block index: 57 || database.go
+2025-04-09 19:30:13	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 16, block index: 58 || database.go
+2025-04-09 19:30:13	||INFO|| SaveMerkleProof || Merkle proof saved for video ID: 16, block index: 59 || database.go
+2025-04-09 19:30:13	||INFO|| SaveThumbnail || Thumbnail saved for video ID: 16 || database.go
+2025-04-09 19:30:42	||INFO|| StartStream || Stream stream3 was canceled: context deadline exceeded || manager.go
+2025-04-09 19:34:10	||INFO|| main || Received shutdown signal, shutting down server... || main.go
+2025-04-09 19:34:10	||INFO|| main || Server shut down gracefully || main.go
+2025-04-09 19:34:10	||INFO|| Shutdown || StreamManager shut down || manager.go
+2025-04-09 19:50:11	||INFO|| main || Configuration loaded successfully || main.go
+2025-04-09 19:50:11	||INFO|| main || Connected to database || main.go
+2025-04-09 19:50:11	||INFO|| runServer || Starting server on port 8080 || main.go
+2025-04-09 19:50:25	||INFO|| Request || Received GET request for /videos from [::1]:41942 || middleware.go
+2025-04-09 19:50:25	||ERROR|| listVideosHandler || Failed to get HLS for video 16: failed to get HLS playlist: no rows in result set || handlers.go
+2025-04-09 19:50:25	||ERROR|| listVideosHandler || Failed to get HLS for video 15: failed to get HLS playlist: no rows in result set || handlers.go
+2025-04-09 19:50:25	||ERROR|| listVideosHandler || Failed to get HLS for video 14: failed to get HLS playlist: no rows in result set || handlers.go
+2025-04-09 19:50:25	||ERROR|| listVideosHandler || Failed to get HLS for video 13: failed to get HLS playlist: no rows in result set || handlers.go
+2025-04-09 19:50:25	||ERROR|| listVideosHandler || Failed to get metadata for video 12: failed to get video metadata: no rows in result set || handlers.go
+2025-04-09 19:50:25	||ERROR|| listVideosHandler || Failed to get metadata for video 11: failed to get video metadata: no rows in result set || handlers.go
+2025-04-09 19:50:25	||INFO|| Request || Completed GET /videos in 2.053415ms || middleware.go
+2025-04-09 19:50:29	||INFO|| main || Received shutdown signal, shutting down server... || main.go
+2025-04-09 19:50:29	||INFO|| main || Server shut down gracefully || main.go
+2025-04-09 19:50:29	||INFO|| Shutdown || StreamManager shut down || manager.go

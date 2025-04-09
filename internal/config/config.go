@@ -16,6 +16,7 @@ type Config struct {
 	ThumbnailDir string
 	ServerPort   int
 	ReservedPort int
+	HLSDir       string
 }
 
 // LoadConfig loads and validates the application configuration
@@ -33,6 +34,7 @@ func LoadConfig() (*Config, error) {
 		DatabaseURL:  getRequiredEnv("DATABASE_URL"),
 		VideoDir:     getRequiredEnv("VIDEO_DIR"),
 		ThumbnailDir: getRequiredEnv("THUMBNAIL_DIR"),
+		HLSDir:       getRequiredEnv("HLS_DIR"),
 	}
 
 	cfg.ServerPort, err = getPortEnv("SERVER_PORT")
@@ -54,6 +56,9 @@ func LoadConfig() (*Config, error) {
 		return nil, fmt.Errorf("thumbnail directory error: %w", err)
 	}
 
+	if err := ensureDirectory(cfg.HLSDir); err != nil {
+		return nil, fmt.Errorf("HSL directory error: %w", err)
+	}
 	return cfg, nil
 }
 
