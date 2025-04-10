@@ -31,19 +31,27 @@ func (r *Router) SetupRoutes() http.Handler {
 	// Применяем middleware ко всем маршрутам
 	logging := LoggingMiddleware(r.logger)
 	errorHandling := ErrorMiddleware(r.logger)
+	cors := func(next http.HandlerFunc) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+			if r.Method == http.MethodOptions {
+				w.WriteHeader(http.StatusNoContent)
+				return
+			}
+			next(w, r)
+		}
+	}
 
 	// Регистрируем маршруты
-	mux.HandleFunc("/health", r.chainMiddleware(r.handler.HealthHandler, logging, errorHandling))
-	mux.HandleFunc("/start-stream", r.chainMiddleware(r.handler.StartStreamHandler, logging, errorHandling))
-	mux.HandleFunc("/stop-stream", r.chainMiddleware(r.handler.StopStreamHandler, logging, errorHandling))
-	mux.HandleFunc("/list-streams", r.chainMiddleware(r.handler.ListStreamsHandler, logging, errorHandling))
-	mux.HandleFunc("/stream/", r.chainMiddleware(r.handler.StreamHandler, logging, errorHandling))
-	mux.HandleFunc("/videos", r.chainMiddleware(r.handler.ListVideosHandler, logging, errorHandling))
-	mux.HandleFunc("/video/", r.chainMiddleware(r.handler.VideoHLSHandler, logging, errorHandling))
-	mux.HandleFunc("/thumbnails/", r.chainMiddleware(r.handler.ThumbnailHandler, logging, errorHandling))
-
-	// Удаляем старый маршрут для HLS, так как теперь используем /video/{video_id}/hls/*
-	// mux.Handle("/hls/", http.StripPrefix("/hls/", http.FileServer(http.Dir(r.cfg.HLSDir))))
+	mux.HandleFunc("/health", r.chainMiddleware(r.handler.HealthHandler, logging, errorHandling, cors))
+	mux.HandleFunc("/start-stream", r.chainMiddleware(r.handler.StartStreamHandler, logging, errorHandling, cors))
+	mux.HandleFunc("/stop-stream", r.chainMiddleware(r.handler.StopStreamHandler, logging, errorHandling, cors))
+	mux.HandleFunc("/list-streams", r.chainMiddleware(r.handler.ListStreamsHandler, logging, errorHandling, cors))
+	mux.HandleFunc("/stream/", r.chainMiddleware(r.handler.StreamHandler, logging, errorHandling, cors))
+	mux.HandleFunc("/archive/list", r.chainMiddleware(r.handler.ListArchivedStreamsHandler, logging, errorHandling, cors))
+	mux.HandleFunc("/archive/", r.chainMiddleware(r.handler.ArchiveHandler, logging, errorHandling, cors))
 
 	return mux
 }

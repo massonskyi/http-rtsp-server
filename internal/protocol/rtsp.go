@@ -3,6 +3,7 @@ package protocol
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -16,6 +17,8 @@ import (
 	"rstp-rsmt-server/internal/merkle"
 	"rstp-rsmt-server/internal/storage"
 	"rstp-rsmt-server/internal/utils"
+	"sort"
+	"strings"
 	"time"
 )
 
@@ -25,6 +28,12 @@ type RTSPClient struct {
 	logger  *utils.Logger
 	storage *storage.Storage
 	fs      *storage.FileSystem
+}
+
+// StreamInfo содержит информацию о потоках (видео и аудио)
+type StreamInfo struct {
+	HasVideo bool
+	HasAudio bool
 }
 
 // NewRTSPClient создает новый экземпляр RTSPClient
@@ -37,8 +46,54 @@ func NewRTSPClient(cfg *config.Config, logger *utils.Logger, storage *storage.St
 	}
 }
 
-// ProcessStream подключается к RTSP-потоку, записывает видео и сохраняет метаданные
-func (c *RTSPClient) ProcessStream(ctx context.Context, rtspURL string, streamID string) error {
+// checkStreamInfo проверяет наличие видео- и аудиопотоков в RTSP-потоке
+func (c *RTSPClient) checkStreamInfo(ctx context.Context, rtspURL string) (StreamInfo, error) {
+	checkCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	ffprobeCmd := exec.CommandContext(checkCtx, "ffprobe",
+		"-rtsp_transport", "tcp",
+		"-show_streams",
+		"-print_format", "json",
+		rtspURL,
+	)
+
+	var stdout, stderr bytes.Buffer
+	ffprobeCmd.Stdout = &stdout
+	ffprobeCmd.Stderr = &stderr
+
+	if err := ffprobeCmd.Run(); err != nil {
+		return StreamInfo{}, fmt.Errorf("failed to probe RTSP stream: %w, ffprobe output: %s", err, stderr.String())
+	}
+
+	// Парсим JSON-вывод ffprobe
+	var probeData struct {
+		Streams []struct {
+			CodecType string `json:"codec_type"`
+		} `json:"streams"`
+	}
+	if err := json.Unmarshal(stdout.Bytes(), &probeData); err != nil {
+		return StreamInfo{}, fmt.Errorf("failed to parse ffprobe output: %w", err)
+	}
+
+	info := StreamInfo{}
+	for _, stream := range probeData.Streams {
+		if stream.CodecType == "video" {
+			info.HasVideo = true
+		} else if stream.CodecType == "audio" {
+			info.HasAudio = true
+		}
+	}
+
+	if !info.HasVideo {
+		return StreamInfo{}, fmt.Errorf("no video stream found in RTSP source")
+	}
+
+	return info, nil
+}
+
+// ProcessStream обрабатывает RTSP-поток
+func (c *RTSPClient) ProcessStream(ctx context.Context, rtspURL string, streamID string, hlsPath string) error {
 	// Логируем начало обработки
 	c.logger.Info("ProcessStream", "rtsp.go", fmt.Sprintf("Starting to process RTSP stream: %s", rtspURL))
 
@@ -54,39 +109,33 @@ func (c *RTSPClient) ProcessStream(ctx context.Context, rtspURL string, streamID
 		return fmt.Errorf("RTSP stream is unavailable: %w", err)
 	}
 
-	// Формируем имя файла для видео (сначала используем MKV)
-	videoFilename := fmt.Sprintf("%s_%d.mkv", streamID, time.Now().Unix())
-	videoFilePath := filepath.Join(c.cfg.VideoDir, videoFilename)
-	finalVideoFilePath := filepath.Join(c.cfg.VideoDir, fmt.Sprintf("%s_%d.mp4", streamID, time.Now().Unix()))
-
-	// Папка для HLS
-	hlsDir := filepath.Join(c.cfg.VideoDir, fmt.Sprintf("%s_%d_hls", streamID, time.Now().Unix()))
-	if err := os.MkdirAll(hlsDir, 0755); err != nil {
-		c.logger.Error("ProcessStream", "rtsp.go", fmt.Sprintf("Failed to create HLS directory %s: %v", hlsDir, err))
-		return fmt.Errorf("failed to create HLS directory: %w", err)
-	}
-
-	// Сохраняем запись о видео в базе данных со статусом "pending"
-	video := &database.Video{
-		Title:     streamID,
-		FilePath:  finalVideoFilePath,
-		Status:    "pending",
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
-	}
-	videoID, err := c.storage.SaveVideo(ctx, video)
+	// Проверяем наличие видео- и аудиопотоков
+	streamInfo, err := c.checkStreamInfo(ctx, rtspURL)
 	if err != nil {
-		return fmt.Errorf("failed to save video: %w", err)
+		c.logger.Error("ProcessStream", "rtsp.go", fmt.Sprintf("Failed to check stream info: %v", err))
+		return fmt.Errorf("failed to check stream info: %w", err)
 	}
+	c.logger.Info("ProcessStream", "rtsp.go", fmt.Sprintf("Stream info: hasVideo=%v, hasAudio=%v", streamInfo.HasVideo, streamInfo.HasAudio))
 
-	// Обновляем статус на "processing"
-	if err := c.storage.UpdateVideoStatus(ctx, videoID, "processing"); err != nil {
-		return fmt.Errorf("failed to update video status: %w", err)
+	// Папка для HLS уже создана в StartStream, используем переданный hlsPath
+	hlsPlaylist := hlsPath
+	hlsDir := filepath.Dir(hlsPath)
+
+	// Сохраняем метаданные стрима в базе данных
+	meta := &database.StreamMetadata{
+		StreamID:   streamID,
+		Duration:   0, // Будет обновлено позже
+		Resolution: "1920x1080",
+		Format:     "hls",
+		CreatedAt:  time.Now(),
+	}
+	if err := c.storage.SaveStreamMetadata(ctx, meta); err != nil {
+		return fmt.Errorf("failed to save stream metadata: %w", err)
 	}
 
 	// Сохраняем лог обработки
 	logEntry := &database.ProcessingLog{
-		VideoID:    videoID,
+		StreamID:   streamID,
 		LogMessage: "Started processing RTSP stream",
 		LogLevel:   "info",
 		CreatedAt:  time.Now(),
@@ -97,7 +146,6 @@ func (c *RTSPClient) ProcessStream(ctx context.Context, rtspURL string, streamID
 
 	// Каналы для координации этапов
 	type recordResult struct {
-		filePath string
 		duration int
 		err      error
 	}
@@ -106,53 +154,110 @@ func (c *RTSPClient) ProcessStream(ctx context.Context, rtspURL string, streamID
 		tree   *merkle.MerkleTree
 		err    error
 	}
-	type thumbnailResult struct {
-		filePath string
-		err      error
-	}
-	type hlsResult struct {
-		hlsPath string
-		err     error
-	}
 
 	recordChan := make(chan recordResult)
 	merkleChan := make(chan merkleResult)
-	thumbnailChan := make(chan thumbnailResult)
-	hlsChan := make(chan hlsResult)
 
 	// Запоминаем время начала записи
 	startTime := time.Now()
 
-	// Этап 1: Запись видео в MKV
+	// Этап 1: Генерация HLS
 	go func() {
 		defer func() {
 			c.logger.Infof("ProcessStream", "rtsp.go", "FFmpeg recording process for stream %s completed", streamID)
 		}()
 
-		ffmpegCmd := exec.Command("ffmpeg",
-			"-fflags", "+genpts",
+		args := []string{
+			// Входные параметры с улучшенной буферизацией
+			"-fflags", "+genpts+discardcorrupt",
 			"-use_wallclock_as_timestamps", "1",
 			"-rtsp_transport", "tcp",
+			"-buffer_size", "8192k", // Увеличенный буфер ввода
+			"-rtsp_flags", "prefer_tcp",
+			"-timeout", "5000000", // Корректный параметр таймаута для вашей версии FFmpeg
 			"-i", rtspURL,
+
+			// Видеокодирование с профессиональными настройками
 			"-c:v", "libx264",
-			"-preset", "fast",
-			"-c:a", "aac",
-			"-f", "matroska",
-			"-y",
-			videoFilePath,
+			"-preset", "ultrafast", // Наименьшая задержка кодирования
+			"-tune", "zerolatency",
+			"-profile:v", "baseline", // Базовый профиль для большей совместимости
+			"-level", "3.0",
+			"-r", "30",
+			"-g", "30", // GOP размером в 1 секунду
+			"-keyint_min", "30", // Минимальный интервал между ключевыми кадрами
+			"-sc_threshold", "0", // Отключить обнаружение смены сцен
+			"-b:v", "2000k", // Фиксированный битрейт
+			"-maxrate", "2500k",
+			"-minrate", "1500k",
+			"-bufsize", "3000k",
+			"-pix_fmt", "yuv420p", // Стандартный цветовой формат
+
+			// Дополнительные параметры для стабильности видео
+			"-x264-params", "no-scenecut=1:bframes=0", // Корректный синтаксис для x264 параметров
+			"-vsync", "1", // Режим синхронизации видео
+			"-avoid_negative_ts", "1",
+		}
+
+		// Добавляем маппинг видеопотока
+		args = append(args, "-map", "0:v:0")
+
+		// Если есть аудиопоток, добавляем его маппинг и кодирование
+		if streamInfo.HasAudio {
+			args = append(args,
+				"-map", "0:a:0",
+				"-c:a", "aac",
+				"-b:a", "128k",
+				"-ar", "44100",
+			)
+		}
+
+		// Формируем HLS-опции
+		hlsSegmentPattern := fmt.Sprintf("%s/%s_segment_%%03d.ts", hlsDir, streamID)
+
+		// Параметры формирования HLS - исправленная версия для вашей версии FFmpeg
+		args = append(args,
+			"-f", "hls",
+			"-hls_time", "2", // Меньший размер сегмента для более плавного переключения
+			"-hls_list_size", "10", // Меньшее количество сегментов в плейлисте
+			"-hls_flags", "delete_segments+append_list+discont_start+split_by_time",
+			"-hls_segment_type", "mpegts",
+			"-hls_segment_filename", hlsSegmentPattern,
+			"-hls_init_time", "0",
+			"-mpegts_flags", "+resend_headers", // Разделены параметры mpegts для большей совместимости
+			"-pat_period", "0.1",
+			"-sdt_period", "0.1",
+			hlsPlaylist,
 		)
+
+		ffmpegCmd := exec.Command("ffmpeg", args...)
 
 		var stderr bytes.Buffer
 		ffmpegCmd.Stderr = &stderr
 		ffmpegCmd.Stdout = &stderr
 
+		// Настраиваем StdinPipe до запуска процесса
+		stdin, err := ffmpegCmd.StdinPipe()
+		if err != nil {
+			c.logger.Error("ProcessStream", "rtsp.go", fmt.Sprintf("Failed to set up Stdin pipe for FFmpeg: %v", err))
+			recordChan <- recordResult{err: fmt.Errorf("failed to set up Stdin pipe for FFmpeg: %w", err)}
+			return
+		}
+		defer stdin.Close() // Закрываем Stdin после использования
+
 		// Для отладки записываем вывод FFmpeg в файл
 		f, err := os.Create(fmt.Sprintf("ffmpeg_output_%s.log", streamID))
 		if err == nil {
-			ffmpegCmd.Stderr = f
-			ffmpegCmd.Stdout = f
 			defer f.Close()
+			mw := io.MultiWriter(f, &stderr)
+			ffmpegCmd.Stderr = mw
+			ffmpegCmd.Stdout = mw
+		} else {
+			c.logger.Error("ProcessStream", "rtsp.go", fmt.Sprintf("Failed to create FFmpeg log file: %v", err))
 		}
+
+		// Логируем команду FFmpeg для отладки
+		c.logger.Info("ProcessStream", "rtsp.go", fmt.Sprintf("FFmpeg command: ffmpeg %s", strings.Join(args, " ")))
 
 		// Запускаем FFmpeg
 		if err := ffmpegCmd.Start(); err != nil {
@@ -171,8 +276,14 @@ func (c *RTSPClient) ProcessStream(ctx context.Context, rtspURL string, streamID
 		case <-ctx.Done():
 			// При отмене контекста отправляем команду 'q' для мягкого завершения
 			c.logger.Infof("ProcessStream", "rtsp.go", "Received cancellation, sending 'q' to FFmpeg for stream %s", streamID)
-			ffmpegCmd.Stdin = bytes.NewReader([]byte("q"))
-			// Даем FFmpeg время на завершение
+			if ffmpegCmd.Process != nil {
+				// Отправляем команду 'q' через уже настроенный Stdin
+				if _, err := stdin.Write([]byte("q\n")); err != nil {
+					c.logger.Error("ProcessStream", "rtsp.go", fmt.Sprintf("Failed to send 'q' to FFmpeg: %v", err))
+				}
+			}
+
+			// Даем FFmpeg больше времени на завершение
 			select {
 			case err := <-done:
 				if err != nil {
@@ -180,62 +291,19 @@ func (c *RTSPClient) ProcessStream(ctx context.Context, rtspURL string, streamID
 				} else {
 					c.logger.Info("ProcessStream", "rtsp.go", "FFmpeg completed gracefully after 'q'")
 				}
-			case <-time.After(15 * time.Second):
-				c.logger.Warning("ProcessStream", "rtsp.go", "FFmpeg did not exit within 15 seconds, killing process")
-				if err := ffmpegCmd.Process.Kill(); err != nil {
-					c.logger.Error("ProcessStream", "rtsp.go", fmt.Sprintf("Failed to kill FFmpeg process: %v", err))
+			case <-time.After(500 * time.Millisecond):
+				c.logger.Warning("ProcessStream", "rtsp.go", "FFmpeg did not exit within 500 milliseconds, killing process")
+				c.logger.Info("ProcessStream", "rtsp.go", fmt.Sprintf("FFmpeg output before killing: %s", stderr.String()))
+				if ffmpegCmd.Process != nil {
+					if err := ffmpegCmd.Process.Kill(); err != nil {
+						c.logger.Error("ProcessStream", "rtsp.go", fmt.Sprintf("Failed to kill FFmpeg process: %v", err))
+					}
 				}
-			}
-
-			// Проверяем файл с помощью ffprobe
-			if err := c.checkVideoFile(videoFilePath); err != nil {
-				c.logger.Error("ProcessStream", "rtsp.go", fmt.Sprintf("Video file %s is corrupted: %v", videoFilePath, err))
-				// Удаляем поврежденный файл
-				if err := os.Remove(videoFilePath); err != nil && !os.IsNotExist(err) {
-					c.logger.Error("ProcessStream", "rtsp.go", fmt.Sprintf("Failed to remove corrupted video file %s: %v", videoFilePath, err))
-				}
-				duration := int(time.Since(startTime).Seconds())
-				recordChan <- recordResult{filePath: videoFilePath, duration: duration, err: fmt.Errorf("video file is corrupted: %w", err)}
-				return
 			}
 
 			// Вычисляем продолжительность записи
 			duration := int(time.Since(startTime).Seconds())
-			// Создаем новый контекст для обновления статуса
-			newCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-			defer cancel()
-			// Устанавливаем статус "canceled"
-			if err := c.storage.UpdateVideoStatus(newCtx, videoID, "canceled"); err != nil {
-				c.logger.Error("ProcessStream", "rtsp.go", fmt.Sprintf("Failed to update video status to canceled: %v", err))
-			}
-			// Сохраняем файл, так как остановка через /stop-stream легальна
-			c.logger.Infof("ProcessStream", "rtsp.go", "Keeping video file %s after legal cancellation via /stop-stream", videoFilePath)
-			// Проверяем, есть ли данные в файле
-			fileSize := getFileSize(videoFilePath)
-			if fileSize == 0 {
-				c.logger.Warningf("ProcessStream", "rtsp.go", "Video file %s is empty after cancellation, skipping further processing", videoFilePath)
-				recordChan <- recordResult{filePath: videoFilePath, duration: duration, err: fmt.Errorf("recording canceled and file is empty: %w", ctx.Err())}
-				return
-			}
-			// Конвертируем MKV в MP4
-			if err := c.convertMKVtoMP4(videoFilePath, finalVideoFilePath); err != nil {
-				c.logger.Error("ProcessStream", "rtsp.go", fmt.Sprintf("Failed to convert MKV to MP4: %v", err))
-				// Продолжаем обработку с MKV, если конвертация не удалась
-				finalVideoFilePath = videoFilePath
-			} else {
-				// Удаляем промежуточный MKV файл
-				if err := os.Remove(videoFilePath); err != nil && !os.IsNotExist(err) {
-					c.logger.Error("ProcessStream", "rtsp.go", fmt.Sprintf("Failed to remove intermediate MKV file %s: %v", videoFilePath, err))
-				}
-			}
-			// Проверяем файл с помощью ffprobe
-			if err := c.checkVideoFile(finalVideoFilePath); err != nil {
-				c.logger.Warning("ProcessStream", "rtsp.go", fmt.Sprintf("Video file %s is corrupted but proceeding with processing: %v", finalVideoFilePath, err))
-			}
-			// Сохраняем файл, так как остановка через /stop-stream легальна
-			c.logger.Infof("ProcessStream", "rtsp.go", "Keeping video file %s after legal cancellation via /stop-stream", finalVideoFilePath)
-			// Если файл не пустой, продолжаем обработку
-			recordChan <- recordResult{filePath: finalVideoFilePath, duration: duration, err: nil}
+			recordChan <- recordResult{duration: duration, err: nil}
 			return
 
 		case err := <-done:
@@ -243,37 +311,10 @@ func (c *RTSPClient) ProcessStream(ctx context.Context, rtspURL string, streamID
 			duration := int(time.Since(startTime).Seconds())
 			if err != nil {
 				c.logger.Error("ProcessStream", "rtsp.go", fmt.Sprintf("Failed to record video with FFmpeg: %v, FFmpeg output: %s", err, stderr.String()))
-				// Создаем новый контекст для обновления статуса
-				newCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-				defer cancel()
-				if err := c.storage.UpdateVideoStatus(newCtx, videoID, "failed"); err != nil {
-					c.logger.Error("ProcessStream", "rtsp.go", fmt.Sprintf("Failed to update video status to failed: %v", err))
-				}
-				// Удаляем файл при ошибке
-				if err := os.Remove(videoFilePath); err != nil && !os.IsNotExist(err) {
-					c.logger.Errorf("ProcessStream", "rtsp.go", "Failed to remove failed video file %s: %v", videoFilePath, err)
-				} else {
-					c.logger.Infof("ProcessStream", "rtsp.go", "Removed failed video file %s", videoFilePath)
-				}
 				recordChan <- recordResult{err: fmt.Errorf("failed to record video: %w, FFmpeg output: %s", err, stderr.String())}
 				return
 			}
-			// Конвертируем MKV в MP4
-			if err := c.convertMKVtoMP4(videoFilePath, finalVideoFilePath); err != nil {
-				c.logger.Error("ProcessStream", "rtsp.go", fmt.Sprintf("Failed to convert MKV to MP4: %v", err))
-				// Продолжаем обработку с MKV, если конвертация не удалась
-				finalVideoFilePath = videoFilePath
-			} else {
-				// Удаляем промежуточный MKV файл
-				if err := os.Remove(videoFilePath); err != nil && !os.IsNotExist(err) {
-					c.logger.Error("ProcessStream", "rtsp.go", fmt.Sprintf("Failed to remove intermediate MKV file %s: %v", videoFilePath, err))
-				}
-			}
-			// Проверяем файл с помощью ffprobe
-			if err := c.checkVideoFile(finalVideoFilePath); err != nil {
-				c.logger.Warning("ProcessStream", "rtsp.go", fmt.Sprintf("Video file %s is corrupted but proceeding with processing: %v", finalVideoFilePath, err))
-			}
-			recordChan <- recordResult{filePath: finalVideoFilePath, duration: duration, err: nil}
+			recordChan <- recordResult{duration: duration, err: nil}
 		}
 	}()
 
@@ -281,69 +322,38 @@ func (c *RTSPClient) ProcessStream(ctx context.Context, rtspURL string, streamID
 	var duration int
 	var newCtx context.Context
 	var cancel context.CancelFunc
-	// Убираем case <-ctx.Done(), так как recordChan уже обрабатывает отмену
 	res := <-recordChan
 	if res.err != nil {
+		// Обновляем продолжительность в stream_metadata
+		newCtx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := c.storage.UpdateStreamMetadataStatus(newCtx, streamID, duration); err != nil {
+			c.logger.Error("ProcessStream", "rtsp.go", fmt.Sprintf("Failed to update stream metadata duration: %v", err))
+		}
 		return res.err
 	}
-	videoFilePath = res.filePath
 	duration = res.duration
 	// Создаем новый контекст для дальнейших операций
 	newCtx, cancel = context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	// Логируем продолжение обработки
-	c.logger.Infof("ProcessStream", "rtsp.go", "Proceeding with post-processing for videoID %d", videoID)
+	c.logger.Infof("ProcessStream", "rtsp.go", "Proceeding with post-processing for streamID %s", streamID)
 
-	// Если статус "canceled", не меняем его на "completed"
-	currentStatus, err := c.storage.GetVideoStatus(newCtx, int64(videoID))
-	if err != nil {
-		c.logger.Error("ProcessStream", "rtsp.go", fmt.Sprintf("Failed to get video status: %v", err))
-	} else if currentStatus != "canceled" {
-		// Обновляем статус на "completed" только если не было отмены
-		if err := c.storage.UpdateVideoStatus(newCtx, videoID, "completed"); err != nil {
-			return fmt.Errorf("failed to update video status: %w", err)
-		}
+	// Обновляем продолжительность в stream_metadata
+	if err := c.storage.UpdateStreamMetadataStatus(newCtx, streamID, duration); err != nil {
+		c.logger.Error("ProcessStream", "rtsp.go", fmt.Sprintf("Failed to update stream metadata duration: %v", err))
+		return fmt.Errorf("failed to update stream metadata duration: %w", err)
 	}
 
-	// Этап 2: Построение дерева Меркла
+	// Этап 2: Построение Merkle-дерева для HLS-сегментов
 	go func() {
-		c.logger.Infof("ProcessStream", "rtsp.go", "Starting Merkle tree construction for videoID %d", videoID)
-		blocks, tree, err := c.buildMerkleTree(videoFilePath)
+		c.logger.Infof("ProcessStream", "rtsp.go", "Starting Merkle tree construction for HLS segments of streamID %s", streamID)
+		blocks, tree, err := c.buildMerkleTreeForHLSSegments(hlsDir, streamID)
 		merkleChan <- merkleResult{blocks: blocks, tree: tree, err: err}
 	}()
 
-	// Этап 3: Создание миниатюры
-	go func() {
-		c.logger.Infof("ProcessStream", "rtsp.go", "Starting thumbnail creation for videoID %d", videoID)
-		thumbnailFilename := fmt.Sprintf("%s_%d.jpg", streamID, time.Now().Unix())
-		thumbnailFilePath := filepath.Join(c.cfg.ThumbnailDir, thumbnailFilename)
-		ffmpegThumbnailCmd := exec.Command("ffmpeg",
-			"-i", videoFilePath,
-			"-ss", "00:00:01",
-			"-vframes", "1",
-			"-y",
-			thumbnailFilePath,
-		)
-		var stderr bytes.Buffer
-		ffmpegThumbnailCmd.Stderr = &stderr
-		err := ffmpegThumbnailCmd.Run()
-		if err != nil {
-			c.logger.Error("ProcessStream", "rtsp.go", fmt.Sprintf("Failed to create thumbnail: %v, FFmpeg output: %s", err, stderr.String()))
-			thumbnailChan <- thumbnailResult{err: fmt.Errorf("failed to create thumbnail: %w, FFmpeg output: %s", err, stderr.String())}
-			return
-		}
-		thumbnailChan <- thumbnailResult{filePath: thumbnailFilePath, err: nil}
-	}()
-
-	// Этап 4: Генерация HLS
-	go func() {
-		c.logger.Infof("ProcessStream", "rtsp.go", "Starting HLS generation for videoID %d", videoID)
-		hlsPath, err := c.generateHLS(videoFilePath, hlsDir)
-		hlsChan <- hlsResult{hlsPath: hlsPath, err: err}
-	}()
-
-	// Ожидаем результаты построения дерева Меркла
+	// Ожидаем результаты построения Merkle-дерева
 	var blocks [][]byte
 	var tree *merkle.MerkleTree
 	select {
@@ -358,7 +368,7 @@ func (c *RTSPClient) ProcessStream(ctx context.Context, rtspURL string, streamID
 	}
 
 	// Логируем перед сохранением метаданных
-	c.logger.Infof("ProcessStream", "rtsp.go", "Preparing to save video metadata for videoID %d", videoID)
+	c.logger.Infof("ProcessStream", "rtsp.go", "Preparing to save HLS Merkle proofs for streamID %s", streamID)
 
 	// Проверяем подключение к базе данных
 	if err := c.storage.Ping(newCtx); err != nil {
@@ -366,99 +376,60 @@ func (c *RTSPClient) ProcessStream(ctx context.Context, rtspURL string, streamID
 		return fmt.Errorf("database connection failed: %w", err)
 	}
 
-	// Сохраняем метаданные видео
-	meta := &database.VideoMetadata{
-		VideoID:    videoID,
-		Duration:   duration,
-		Resolution: "1920x1080",
-		Format:     "mp4",
-		FileSize:   getFileSize(videoFilePath),
-		MerkleRoot: fmt.Sprintf("%x", tree.Root.Hash),
-		BlockCount: len(blocks),
-		CreatedAt:  time.Now(),
-	}
-	if err := c.storage.SaveVideoMetadata(newCtx, meta); err != nil {
-		c.logger.Error("ProcessStream", "rtsp.go", fmt.Sprintf("Failed to save video metadata: %v", err))
-		return fmt.Errorf("failed to save video metadata: %w", err)
-	}
-	c.logger.Infof("ProcessStream", "rtsp.go", "Successfully saved video metadata for videoID %d", videoID)
-
-	// Генерируем и сохраняем доказательства включения
+	// Генерируем и сохраняем доказательства включения для HLS-сегментов
 	for i := 0; i < len(blocks); i++ {
 		proof, err := tree.GenerateProof(i)
 		if err != nil {
-			c.logger.Error("ProcessStream", "rtsp.go", fmt.Sprintf("Failed to generate Merkle proof for block %d: %v", i, err))
+			c.logger.Error("ProcessStream", "rtsp.go", fmt.Sprintf("Failed to generate Merkle proof for segment %d: %v", i, err))
 			continue
 		}
 
 		proofPath, err := json.Marshal(proof.Path)
 		if err != nil {
-			c.logger.Error("ProcessStream", "rtsp.go", fmt.Sprintf("Failed to serialize Merkle proof for block %d: %v", i, err))
+			c.logger.Error("ProcessStream", "rtsp.go", fmt.Sprintf("Failed to serialize Merkle proof for segment %d: %v", i, err))
 			continue
 		}
 
-		merkleProof := &database.MerkleProof{
-			VideoID:    videoID,
-			BlockIndex: i,
-			ProofPath:  string(proofPath),
-			CreatedAt:  time.Now(),
+		merkleProof := &database.HLSMerkleProof{
+			StreamID:     streamID,
+			SegmentIndex: i,
+			ProofPath:    string(proofPath),
+			CreatedAt:    time.Now(),
 		}
-		if err := c.storage.SaveMerkleProof(newCtx, merkleProof); err != nil {
-			c.logger.Error("ProcessStream", "rtsp.go", fmt.Sprintf("Failed to save Merkle proof for block %d: %v", i, err))
+		if err := c.storage.SaveHLSMerkleProof(newCtx, merkleProof); err != nil {
+			c.logger.Error("ProcessStream", "rtsp.go", fmt.Sprintf("Failed to save HLS Merkle proof for segment %d: %v", i, err))
 			continue
 		}
-	}
-
-	// Ожидаем результат создания миниатюры
-	var thumbnailFilePath string
-	select {
-	case res := <-thumbnailChan:
-		if res.err != nil {
-			return res.err
-		}
-		thumbnailFilePath = res.filePath
-	case <-newCtx.Done():
-		return newCtx.Err()
-	}
-
-	// Сохраняем информацию о миниатюре
-	thumbnail := &database.Thumbnail{
-		VideoID:   videoID,
-		FilePath:  thumbnailFilePath,
-		CreatedAt: time.Now(),
-	}
-	if err := c.storage.SaveThumbnail(newCtx, thumbnail); err != nil {
-		c.logger.Error("ProcessStream", "rtsp.go", fmt.Sprintf("Failed to save thumbnail: %v", err))
-		return fmt.Errorf("failed to save thumbnail: %w", err)
-	}
-
-	// Ожидаем результат генерации HLS
-	var hlsPath string
-	select {
-	case res := <-hlsChan:
-		if res.err != nil {
-			return res.err
-		}
-		hlsPath = res.hlsPath
-	case <-newCtx.Done():
-		return newCtx.Err()
 	}
 
 	// Сохраняем информацию о HLS в базе данных
-	hlsPlaylist := &database.HLSPlaylist{
-		VideoID:      int64(videoID),
-		PlaylistPath: hlsPath,
+	hlsPlaylistEntry := &database.HLSPlaylist{
+		StreamID:     streamID,
+		PlaylistPath: hlsPlaylist,
 		CreatedAt:    time.Now(),
 	}
-	if err := c.storage.SaveHLSPlaylist(newCtx, hlsPlaylist); err != nil {
+	if err := c.storage.SaveHLSPlaylist(newCtx, hlsPlaylistEntry); err != nil {
 		c.logger.Error("ProcessStream", "rtsp.go", fmt.Sprintf("Failed to save HLS playlist: %v", err))
 		return fmt.Errorf("failed to save HLS playlist: %w", err)
 	}
-	c.logger.Infof("ProcessStream", "rtsp.go", "HLS generated at %s for videoID %d", hlsPath, videoID)
+	c.logger.Infof("ProcessStream", "rtsp.go", "HLS generated at %s for streamID %s", hlsPlaylist, streamID)
+
+	// Сохраняем информацию о завершённом стриме в таблицу archive
+	archiveEntry := &database.Archive{
+		StreamID:        streamID,
+		Status:          "completed",
+		Duration:        duration,
+		HLSPlaylistPath: hlsPlaylist,
+		ArchivedAt:      time.Now(),
+	}
+	if err := c.storage.SaveArchiveEntry(newCtx, archiveEntry); err != nil {
+		c.logger.Error("ProcessStream", "rtsp.go", fmt.Sprintf("Failed to save archive entry: %v", err))
+		return fmt.Errorf("failed to save archive entry: %w", err)
+	}
 
 	// Логируем успешное завершение
 	logEntry = &database.ProcessingLog{
-		VideoID:    videoID,
+		StreamID:   streamID,
 		LogMessage: "Successfully processed RTSP stream",
 		LogLevel:   "info",
 		CreatedAt:  time.Now(),
@@ -470,6 +441,46 @@ func (c *RTSPClient) ProcessStream(ctx context.Context, rtspURL string, streamID
 
 	c.logger.Info("ProcessStream", "rtsp.go", fmt.Sprintf("Successfully processed RTSP stream: %s", rtspURL))
 	return nil
+}
+
+// buildMerkleTreeForHLSSegments строит Merkle-дерево на основе HLS-сегментов
+func (c *RTSPClient) buildMerkleTreeForHLSSegments(hlsDir, streamID string) ([][]byte, *merkle.MerkleTree, error) {
+	// Читаем все HLS-сегменты из директории
+	pattern := filepath.Join(hlsDir, fmt.Sprintf("%s_segment_*.ts", streamID))
+	files, err := filepath.Glob(pattern)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to list HLS segments: %w", err)
+	}
+	if len(files) == 0 {
+		return nil, nil, fmt.Errorf("no HLS segments found in %s", hlsDir)
+	}
+
+	// Сортируем файлы по имени, чтобы сегменты шли по порядку
+	sort.Strings(files)
+
+	// Создаём блоки для Merkle-дерева (хэши сегментов)
+	var blocks [][]byte
+	for _, file := range files {
+		data, err := os.ReadFile(file)
+		if err != nil {
+			c.logger.Error("buildMerkleTreeForHLSSegments", "rtsp.go", fmt.Sprintf("Failed to read HLS segment %s: %v", file, err))
+			continue
+		}
+		hash := sha256.Sum256(data)
+		blocks = append(blocks, hash[:])
+	}
+
+	if len(blocks) == 0 {
+		return nil, nil, fmt.Errorf("no valid HLS segments to build Merkle tree")
+	}
+
+	// Строим Merkle-дерево
+	tree, err := merkle.NewMerkleTree(blocks)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to build Merkle tree: %w", err)
+	}
+
+	return blocks, tree, nil
 }
 
 // convertMKVtoMP4 конвертирует MKV в MP4
@@ -490,27 +501,6 @@ func (c *RTSPClient) convertMKVtoMP4(inputPath, outputPath string) error {
 		return fmt.Errorf("failed to convert MKV to MP4: %w, FFmpeg output: %s", err, stderr.String())
 	}
 	return nil
-}
-
-// generateHLS генерирует HLS-сегменты и плейлист
-func (c *RTSPClient) generateHLS(inputPath, hlsDir string) (string, error) {
-	hlsPlaylist := filepath.Join(hlsDir, "playlist.m3u8")
-	ffmpegCmd := exec.Command("ffmpeg",
-		"-i", inputPath,
-		"-hls_time", "10",
-		"-hls_list_size", "0",
-		"-hls_segment_filename", filepath.Join(hlsDir, "segment_%03d.ts"),
-		"-y",
-		hlsPlaylist,
-	)
-	var stderr bytes.Buffer
-	ffmpegCmd.Stderr = &stderr
-	ffmpegCmd.Stdout = &stderr
-	err := ffmpegCmd.Run()
-	if err != nil {
-		return "", fmt.Errorf("failed to generate HLS: %w, FFmpeg output: %s", err, stderr.String())
-	}
-	return hlsPlaylist, nil
 }
 
 // validateRTSPURL проверяет корректность RTSP-URL и разрешение имени хоста

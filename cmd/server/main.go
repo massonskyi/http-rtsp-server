@@ -18,16 +18,12 @@ import (
 )
 
 // runServer запускает HTTP-сервер в отдельной горутине
-func runServer(cfg *config.Config, logger *utils.Logger, storage *storage.Storage, fs *storage.FileSystem) error {
+func runServer(cfg *config.Config, logger *utils.Logger, storage *storage.Storage) error {
 	// Инициализируем RTSP-клиент
-	rtspClient := protocol.NewRTSPClient(cfg, logger, storage, fs)
+	rtspClient := protocol.NewRTSPClient(cfg, logger, storage, nil)
 
 	// Инициализируем StreamManager
-	streamManager, err := stream.NewStreamManager(cfg, logger, storage, fs, rtspClient)
-	if err != nil {
-		logger.Errorf("runServer", "main.go", "Failed to initialize StreamManager: %v", err)
-		return err
-	}
+	streamManager := stream.NewStreamManager(cfg, logger, storage, rtspClient)
 	defer streamManager.Shutdown()
 
 	// Инициализируем HLSManager
@@ -46,12 +42,12 @@ func runServer(cfg *config.Config, logger *utils.Logger, storage *storage.Storag
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {
-				logger.Errorf("runServer", "main.go", "Recovered from panic: %v", r)
+				logger.Error("runServer", "main.go", fmt.Sprintf("Recovered from panic: %v", r))
 			}
 		}()
-		logger.Infof("runServer", "main.go", "Starting server on port %s", fmt.Sprintf("%d", cfg.ServerPort))
+		logger.Info("runServer", "main.go", fmt.Sprintf("Starting server on port %s", fmt.Sprintf("%d", cfg.ServerPort)))
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logger.Errorf("runServer", "main.go", "Server failed: %v", err)
+			logger.Error("runServer", "main.go", fmt.Sprintf("Server failed: %v", err))
 		}
 	}()
 
@@ -66,7 +62,7 @@ func runServer(cfg *config.Config, logger *utils.Logger, storage *storage.Storag
 	defer cancel()
 
 	if err := srv.Shutdown(ctx); err != nil {
-		logger.Errorf("main", "main.go", "Server shutdown failed: %v", err)
+		logger.Error("main", "main.go", fmt.Sprintf("Server shutdown failed: %v", err))
 		return err
 	}
 	logger.Info("main", "main.go", "Server shut down gracefully")
@@ -88,7 +84,7 @@ func main() {
 	// Обработка паник в main
 	defer func() {
 		if r := recover(); r != nil {
-			logger.Errorf("main", "main.go", "Recovered from panic: %v", r)
+			logger.Error("main", "main.go", fmt.Sprintf("Recovered from panic: %v", r))
 			os.Exit(1)
 		}
 	}()
@@ -96,7 +92,7 @@ func main() {
 	// Загрузка конфигурации
 	cfg, err := config.LoadConfig()
 	if err != nil {
-		logger.Errorf("main", "main.go", "Failed to load config: %v", err)
+		logger.Error("main", "main.go", fmt.Sprintf("Failed to load config: %v", err))
 		os.Exit(1)
 	}
 	logger.Info("main", "main.go", "Configuration loaded successfully")
@@ -104,7 +100,7 @@ func main() {
 	// Подключение к базе данных
 	db, err := database.NewDB(cfg)
 	if err != nil {
-		logger.Errorf("main", "main.go", "Failed to connect to database: %v", err)
+		logger.Error("main", "main.go", fmt.Sprintf("Failed to connect to database: %v", err))
 		os.Exit(1)
 	}
 	defer db.Close()
@@ -112,11 +108,10 @@ func main() {
 
 	// Инициализация хранилища
 	store := storage.NewStorage(db.Pool, logger)
-	fs := storage.NewFileSystem(cfg, logger)
 
 	// Запуск сервера
-	if err := runServer(cfg, logger, store, fs); err != nil {
-		logger.Errorf("main", "main.go", "Failed to run server: %v", err)
+	if err := runServer(cfg, logger, store); err != nil {
+		logger.Error("main", "main.go", fmt.Sprintf("Failed to run server: %v", err))
 		os.Exit(1)
 	}
 }

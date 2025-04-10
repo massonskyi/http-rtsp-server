@@ -22,4 +22,14 @@ go.work
 
 
 .env
-/data/*
+./data/*
+./logs/*
+data/
+data/hls
+data/thumbnails
+data/videos
+logs/
+logs/
+*.log
+*.ts
+*.m3u8
