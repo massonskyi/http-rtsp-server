@@ -64,7 +64,7 @@ func (sm *StreamManager) StartStream(rtspURL string, streamID string, streamName
 	if err := utils.EnsureDir(hlsDir); err != nil {
 		return fmt.Errorf("failed to create HLS directory: %w", err)
 	}
-	hlsPath := filepath.Join(hlsDir, ".m3u8")
+	hlsPath := filepath.Join(hlsDir, "index.m3u8")
 
 	// Создаем контекст для управления FFmpeg
 	ctx, cancel := context.WithCancel(context.Background())

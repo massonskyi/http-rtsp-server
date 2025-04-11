@@ -30,11 +30,11 @@ func NewRouter(cfg *config.Config, logger *utils.Logger, streamManager *stream.S
 func (r *Router) SetupRoutes() http.Handler {
 	router := mux.NewRouter()
 
-	// Применяем middleware ко всем маршрутам
+	// Middleware
 	logging := LoggingMiddleware(r.logger)
 	errorHandling := ErrorMiddleware(r.logger)
-	cors := func(next http.HandlerFunc) http.HandlerFunc {
-		return func(w http.ResponseWriter, r *http.Request) {
+	cors := func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Access-Control-Allow-Origin", "*")
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
 			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
@@ -42,30 +42,36 @@ func (r *Router) SetupRoutes() http.Handler {
 				w.WriteHeader(http.StatusNoContent)
 				return
 			}
-			next(w, r)
-		}
+			next.ServeHTTP(w, r)
+		})
 	}
 
-	// Регистрируем маршруты
-	router.HandleFunc("/health", r.chainMiddleware(r.handler.HealthHandler, logging, errorHandling, cors)).Methods("GET")
-	router.HandleFunc("/start-stream", r.chainMiddleware(r.handler.StartStreamHandler, logging, errorHandling, cors)).Methods("POST")
-	router.HandleFunc("/stop-stream", r.chainMiddleware(r.handler.StopStreamHandler, logging, errorHandling, cors)).Methods("POST")
-	router.HandleFunc("/list-streams", r.chainMiddleware(r.handler.ListStreamsHandler, logging, errorHandling, cors)).Methods("GET")
-	router.HandleFunc("/stream/{stream_name}", r.chainMiddleware(r.handler.StreamHandler, logging, errorHandling, cors)).Methods("GET", "OPTIONS")
-	router.HandleFunc("/stream/{stream_name}/{segment}", r.chainMiddleware(r.handler.StreamHandler, logging, errorHandling, cors)).Methods("GET", "OPTIONS")
-	router.HandleFunc("/archive/list", r.chainMiddleware(r.handler.ListArchivedStreamsHandler, logging, errorHandling, cors)).Methods("GET")
-	router.HandleFunc("/archive/{stream_name}", r.chainMiddleware(r.handler.ArchiveHandler, logging, errorHandling, cors)).Methods("GET", "OPTIONS")
-	router.HandleFunc("/archive/{stream_name}/{segment}", r.chainMiddleware(r.handler.ArchiveHandler, logging, errorHandling, cors)).Methods("GET", "OPTIONS")
-	router.HandleFunc("/preview/{stream_name}", r.chainMiddleware(r.handler.PreviewHandler, logging, errorHandling, cors)).Methods("GET", "OPTIONS")
-	router.HandleFunc("/update-config", r.chainMiddleware(r.handler.UpdateConfigHandler, logging, errorHandling, cors)).Methods("POST")
+	// Оборачиваем в chain
+	chain := func(h http.HandlerFunc) http.Handler {
+		return r.chainMiddleware(h, logging, errorHandling, cors)
+	}
 
+	// Маршруты
+	router.Handle("/health", chain(r.handler.HealthHandler)).Methods("GET")
+	router.Handle("/start-stream", chain(r.handler.StartStreamHandler)).Methods("POST")
+	router.Handle("/stop-stream", chain(r.handler.StopStreamHandler)).Methods("POST")
+	router.Handle("/list-streams", chain(r.handler.ListStreamsHandler)).Methods("GET")
+	router.Handle("/stream/{stream_name}", chain(r.handler.StreamHandler)).Methods("GET", "OPTIONS")
+	router.Handle("/stream/{stream_name}/{segment}", chain(r.handler.StreamHandler)).Methods("GET", "OPTIONS")
+	router.Handle("/archive/list", chain(r.handler.ListArchivedStreamsHandler)).Methods("GET")
+	router.Handle("/archive/{stream_name}", chain(r.handler.ArchiveHandler)).Methods("GET", "OPTIONS")
+	router.Handle("/archive/{stream_name}/{segment}", chain(r.handler.ArchiveHandler)).Methods("GET", "OPTIONS")
+	router.Handle("/preview/{stream_name}", chain(r.handler.PreviewHandler)).Methods("GET", "OPTIONS")
+	router.Handle("/update-config", chain(r.handler.UpdateConfigHandler)).Methods("POST")
+	router.Handle("/get-config", chain(r.handler.GetConfigHandler)).Methods("GET")
 	return router
 }
 
 // chainMiddleware применяет цепочку middleware к обработчику
-func (r *Router) chainMiddleware(handler http.HandlerFunc, middlewares ...Middleware) http.HandlerFunc {
+func (r *Router) chainMiddleware(handler http.HandlerFunc, middlewares ...Middleware) http.Handler {
+	var h http.Handler = handler
 	for i := len(middlewares) - 1; i >= 0; i-- {
-		handler = middlewares[i](handler)
+		h = middlewares[i](h)
 	}
-	return handler
+	return h
 }

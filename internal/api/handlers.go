@@ -114,8 +114,9 @@ func (h *Handler) StartStreamHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.logger.Info("StartStreamHandler", "handlers.go", fmt.Sprintf("Started processing stream: %s (stream_id: %s)", rtspURL, streamID))
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(fmt.Sprintf("Stream processing started, stream_id: %s", streamID)))
+	json.NewEncoder(w).Encode(map[string]string{"message": "Stream started"})
 }
 
 // StopStreamHandler обрабатывает запросы к /stop-stream
@@ -146,55 +147,115 @@ func (h *Handler) StopStreamHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.logger.Info("StopStreamHandler", "handlers.go", fmt.Sprintf("Stopped stream: %s (stream_id: %s)", streamName, stream.ID))
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Stream stopped"))
+	json.NewEncoder(w).Encode(map[string]string{"message": "Stream stopped"})
 }
 
 // ListStreamsHandler обрабатывает запросы к /list-streams
 func (h *Handler) ListStreamsHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
 	streams := h.streamManager.ListStreams()
-	response := make(map[string]*StreamResponse)
+	streamMap := make(map[string]interface{})
+
 	for id, stream := range streams {
-		// Получаем метаданные из базы данных
-		var duration int
-		var previewPath string
-		meta, err := h.streamManager.Storage().GetStreamMetadata(r.Context(), stream.ID)
+		// Пытаемся получить метаданные
+		meta, err := h.streamManager.Storage().GetStreamMetadata(r.Context(), id)
 		if err != nil {
-			h.logger.Error("ListStreamsHandler", "handlers.go", fmt.Sprintf("Failed to get metadata for stream %s: %v", stream.ID, err))
-			duration = 0
-			previewPath = ""
-		} else {
-			duration = meta.Duration
-			previewPath = meta.PreviewPath
+			h.logger.Warning("ListStreamsHandler", "handlers.go", fmt.Sprintf("Failed to get metadata for stream %s: %v", id, err))
+			// Если метаданные не найдены, всё равно добавляем стрим, но с минимальной информацией
+			streamMap[id] = map[string]interface{}{
+				"stream_id":   id,
+				"stream_name": stream.StreamName,
+				"status":      stream.Status,
+				"preview_url": fmt.Sprintf("http://%s/preview/%s", r.Host, stream.StreamName),
+			}
+			continue
 		}
 
-		// Формируем HLS URL
-		hlsURL := fmt.Sprintf("/stream/%s", stream.StreamName)
-		// Формируем URL для превью
-		previewURL := ""
-		if previewPath != "" {
-			previewURL = fmt.Sprintf("/preview/%s", stream.StreamName)
-		}
-
-		response[id] = &StreamResponse{
-			ID:         stream.ID,
-			StreamName: stream.StreamName,
-			RTSPURL:    stream.RTSPURL,
-			HLSURL:     hlsURL,
-			HLSPath:    stream.GetHLSPath(),
-			Duration:   duration,
-			StartedAt:  stream.StartedAt,
-			Status:     stream.Status,
-			PreviewURL: previewURL,
+		// Если метаданные найдены, добавляем их
+		streamMap[id] = map[string]interface{}{
+			"stream_id":   id,
+			"stream_name": stream.StreamName,
+			"status":      stream.Status,
+			"duration":    meta.Duration,
+			"resolution":  meta.Resolution,
+			"format":      meta.Format,
+			"preview_url": fmt.Sprintf("http://%s/preview/%s", r.Host, stream.StreamName),
 		}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(response); err != nil {
+	if err := json.NewEncoder(w).Encode(streamMap); err != nil {
 		h.logger.Error("ListStreamsHandler", "handlers.go", fmt.Sprintf("Failed to encode streams: %v", err))
-		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
 		return
 	}
+}
+
+// PreviewHandler обрабатывает запросы к /preview/{streamName}
+func (h *Handler) PreviewHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Извлекаем streamName из URL
+	streamName := r.URL.Path[len("/preview/"):]
+	if streamName == "" {
+		h.logger.Error("PreviewHandler", "handlers.go", "Missing streamName in preview request")
+		http.Error(w, "Missing streamName", http.StatusBadRequest)
+		return
+	}
+
+	h.logger.Info("PreviewHandler", "handlers.go", fmt.Sprintf("Processing preview request for streamName: %s", streamName))
+
+	// Сначала ищем среди активных стримов
+	var previewPath string
+	stream, exists := h.streamManager.GetStreamByName(streamName)
+	if exists {
+		// Проверяем метаданные активного стрима
+		meta, err := h.streamManager.Storage().GetStreamMetadata(r.Context(), stream.ID)
+		if err != nil {
+			h.logger.Error("PreviewHandler", "handlers.go", fmt.Sprintf("Failed to get metadata for active stream %s: %v", stream.ID, err))
+		} else {
+			previewPath = meta.PreviewPath
+		}
+	}
+
+	// Если стрим не активен, ищем в архиве
+	if previewPath == "" {
+		_, err := h.streamManager.Storage().GetArchiveEntryByName(r.Context(), streamName)
+		if err != nil {
+			h.logger.Error("PreviewHandler", "handlers.go", fmt.Sprintf("Failed to get archive entry for stream %s: %v", streamName, err))
+			http.Error(w, fmt.Sprintf("Failed to get stream or archive entry: %v", err), http.StatusNotFound)
+			return
+		}
+
+		// Проверяем метаданные архивного стрима
+		meta, err := h.streamManager.Storage().GetStreamMetadataByName(r.Context(), streamName)
+		if err != nil {
+			h.logger.Error("PreviewHandler", "handlers.go", fmt.Sprintf("Failed to get metadata for archived stream %s: %v", streamName, err))
+			http.Error(w, fmt.Sprintf("Failed to get stream metadata: %v", err), http.StatusNotFound)
+			return
+		}
+
+		previewPath = meta.PreviewPath
+	}
+
+	// Проверяем, существует ли файл превью
+	if previewPath == "" {
+		h.logger.Error("PreviewHandler", "handlers.go", fmt.Sprintf("Preview path not found for stream %s", streamName))
+		http.Error(w, "Preview not found", http.StatusNotFound)
+		return
+	}
+
+	// Отправляем файл превью
+	http.ServeFile(w, r, previewPath)
 }
 
 // StreamHandler обрабатывает запросы к /stream/{stream_name}
@@ -697,81 +758,81 @@ func (h *Handler) ArchiveHandler(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, requestedPath)
 }
 
-// PreviewHandler обрабатывает запросы к /preview/{stream_name}
-func (h *Handler) PreviewHandler(w http.ResponseWriter, r *http.Request) {
-	// Устанавливаем заголовки CORS
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+// // PreviewHandler обрабатывает запросы к /preview/{stream_name}
+// func (h *Handler) PreviewHandler(w http.ResponseWriter, r *http.Request) {
+// 	// Устанавливаем заголовки CORS
+// 	w.Header().Set("Access-Control-Allow-Origin", "*")
+// 	w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+// 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 
-	// Обрабатываем предварительные запросы OPTIONS
-	if r.Method == http.MethodOptions {
-		w.WriteHeader(http.StatusOK)
-		return
-	}
+// 	// Обрабатываем предварительные запросы OPTIONS
+// 	if r.Method == http.MethodOptions {
+// 		w.WriteHeader(http.StatusOK)
+// 		return
+// 	}
 
-	// Извлекаем stream_name из URL
-	pathParts := strings.Split(r.URL.Path, "/")
-	if len(pathParts) != 3 {
-		h.logger.Error("PreviewHandler", "handlers.go", "Invalid URL format: expected /preview/{stream_name}")
-		http.Error(w, "Invalid URL format", http.StatusBadRequest)
-		return
-	}
+// 	// Извлекаем stream_name из URL
+// 	pathParts := strings.Split(r.URL.Path, "/")
+// 	if len(pathParts) != 3 {
+// 		h.logger.Error("PreviewHandler", "handlers.go", "Invalid URL format: expected /preview/{stream_name}")
+// 		http.Error(w, "Invalid URL format", http.StatusBadRequest)
+// 		return
+// 	}
 
-	streamName := pathParts[2]
-	h.logger.Info("PreviewHandler", "handlers.go", fmt.Sprintf("Processing preview request for streamName: %s", streamName))
+// 	streamName := pathParts[2]
+// 	h.logger.Info("PreviewHandler", "handlers.go", fmt.Sprintf("Processing preview request for streamName: %s", streamName))
 
-	// Сначала ищем активный стрим
-	var previewPath string
-	var streamID string
-	stream, exists := h.streamManager.GetStreamByName(streamName)
-	if exists {
-		// Стрим активный, получаем метаданные
-		streamID = stream.ID
-		meta, err := h.streamManager.Storage().GetStreamMetadata(r.Context(), streamID)
-		if err != nil {
-			h.logger.Error("PreviewHandler", "handlers.go", fmt.Sprintf("Failed to get metadata for active stream %s: %v", streamID, err))
-			http.Error(w, "Failed to get stream metadata", http.StatusInternalServerError)
-			return
-		}
-		previewPath = meta.PreviewPath
-	} else {
-		// Стрим не активный, ищем в архиве
-		archive, err := h.streamManager.Storage().GetArchiveEntryByName(r.Context(), streamName)
-		if err != nil {
-			h.logger.Error("PreviewHandler", "handlers.go", fmt.Sprintf("Failed to get archive entry for stream_name %s: %v", streamName, err))
-			http.Error(w, fmt.Sprintf("Stream or archive entry for stream_name %s not found", streamName), http.StatusNotFound)
-			return
-		}
-		streamID = archive.StreamID
-		meta, err := h.streamManager.Storage().GetStreamMetadata(r.Context(), streamID)
-		if err != nil {
-			h.logger.Error("PreviewHandler", "handlers.go", fmt.Sprintf("Failed to get metadata for archived stream %s: %v", streamID, err))
-			http.Error(w, "Failed to get stream metadata", http.StatusInternalServerError)
-			return
-		}
-		previewPath = meta.PreviewPath
-	}
+// 	// Сначала ищем активный стрим
+// 	var previewPath string
+// 	var streamID string
+// 	stream, exists := h.streamManager.GetStreamByName(streamName)
+// 	if exists {
+// 		// Стрим активный, получаем метаданные
+// 		streamID = stream.ID
+// 		meta, err := h.streamManager.Storage().GetStreamMetadata(r.Context(), streamID)
+// 		if err != nil {
+// 			h.logger.Error("PreviewHandler", "handlers.go", fmt.Sprintf("Failed to get metadata for active stream %s: %v", streamID, err))
+// 			http.Error(w, "Failed to get stream metadata", http.StatusInternalServerError)
+// 			return
+// 		}
+// 		previewPath = meta.PreviewPath
+// 	} else {
+// 		// Стрим не активный, ищем в архиве
+// 		archive, err := h.streamManager.Storage().GetArchiveEntryByName(r.Context(), streamName)
+// 		if err != nil {
+// 			h.logger.Error("PreviewHandler", "handlers.go", fmt.Sprintf("Failed to get archive entry for stream_name %s: %v", streamName, err))
+// 			http.Error(w, fmt.Sprintf("Stream or archive entry for stream_name %s not found", streamName), http.StatusNotFound)
+// 			return
+// 		}
+// 		streamID = archive.StreamID
+// 		meta, err := h.streamManager.Storage().GetStreamMetadata(r.Context(), streamID)
+// 		if err != nil {
+// 			h.logger.Error("PreviewHandler", "handlers.go", fmt.Sprintf("Failed to get metadata for archived stream %s: %v", streamID, err))
+// 			http.Error(w, "Failed to get stream metadata", http.StatusInternalServerError)
+// 			return
+// 		}
+// 		previewPath = meta.PreviewPath
+// 	}
 
-	// Проверяем, есть ли путь к превью
-	if previewPath == "" {
-		h.logger.Error("PreviewHandler", "handlers.go", fmt.Sprintf("Preview path not found for stream %s", streamID))
-		http.Error(w, "Preview not available for this stream", http.StatusNotFound)
-		return
-	}
+// 	// Проверяем, есть ли путь к превью
+// 	if previewPath == "" {
+// 		h.logger.Error("PreviewHandler", "handlers.go", fmt.Sprintf("Preview path not found for stream %s", streamID))
+// 		http.Error(w, "Preview not available for this stream", http.StatusNotFound)
+// 		return
+// 	}
 
-	// Проверяем, существует ли файл превью
-	if _, err := os.Stat(previewPath); os.IsNotExist(err) {
-		h.logger.Error("PreviewHandler", "handlers.go", fmt.Sprintf("Preview file not found: %s", previewPath))
-		http.Error(w, "Preview file not found", http.StatusNotFound)
-		return
-	}
+// 	// Проверяем, существует ли файл превью
+// 	if _, err := os.Stat(previewPath); os.IsNotExist(err) {
+// 		h.logger.Error("PreviewHandler", "handlers.go", fmt.Sprintf("Preview file not found: %s", previewPath))
+// 		http.Error(w, "Preview file not found", http.StatusNotFound)
+// 		return
+// 	}
 
-	// Устанавливаем Content-Type для изображения
-	w.Header().Set("Content-Type", "image/jpeg")
-	h.logger.Info("PreviewHandler", "handlers.go", fmt.Sprintf("Serving preview file: %s", previewPath))
-	http.ServeFile(w, r, previewPath)
-}
+// 	// Устанавливаем Content-Type для изображения
+// 	w.Header().Set("Content-Type", "image/jpeg")
+// 	h.logger.Info("PreviewHandler", "handlers.go", fmt.Sprintf("Serving preview file: %s", previewPath))
+// 	http.ServeFile(w, r, previewPath)
+// }
 
 // UpdateVideoParamsHandler обрабатывает запросы к /update-video-params
 func (h *Handler) UpdateVideoParamsHandler(w http.ResponseWriter, r *http.Request) {
@@ -845,4 +906,19 @@ func (h *Handler) UpdateConfigHandler(w http.ResponseWriter, r *http.Request) {
 	h.logger.Info("UpdateConfigHandler", "handlers.go", "Configuration updated successfully")
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("Configuration updated successfully"))
+}
+
+// GetConfigHandler обрабатывает запросы к /get-config
+func (h *Handler) GetConfigHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(h.cfg); err != nil {
+		h.logger.Error("GetConfigHandler", "handlers.go", fmt.Sprintf("Failed to encode config: %v", err))
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		return
+	}
 }

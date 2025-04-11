@@ -59,18 +59,6 @@ func (s *Storage) SaveStreamMetadata(ctx context.Context, meta *database.StreamM
 	return nil
 }
 
-// UpdateStreamMetadataStatus обновляет продолжительность стрима
-const updateStreamMetadataStatusQuery = `
-	UPDATE stream_metadata
-	SET duration = $2
-	WHERE stream_id = $1
-`
-
-func (s *Storage) UpdateStreamMetadataStatus(ctx context.Context, streamID string, duration int) error {
-	_, err := s.pool.Exec(ctx, updateStreamMetadataQuery, streamID, duration)
-	return err
-}
-
 // UpdateStreamMetadata обновляет метаданные стрима
 const updateStreamMetadataQuery = `
 	UPDATE stream_metadata
