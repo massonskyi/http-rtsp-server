@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"os"
 	"os/exec"
 )
 
@@ -95,4 +96,12 @@ func ProbeStream(rtspURL string) (*StreamInfo, error) {
 	}
 
 	return streamInfo, nil
+}
+
+// EnsureDir ensures that a directory exists, creating it if necessary.
+func EnsureDir(dir string) error {
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		return os.MkdirAll(dir, os.ModePerm)
+	}
+	return nil
 }

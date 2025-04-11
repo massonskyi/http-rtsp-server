@@ -6,169 +6,322 @@ import (
 	"rstp-rsmt-server/internal/database"
 	"rstp-rsmt-server/internal/utils"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // Storage предоставляет методы для работы с базой данных
 type Storage struct {
-	db     *pgxpool.Pool
+	pool   *pgxpool.Pool
 	logger *utils.Logger
 }
 
 // NewStorage создает новый экземпляр Storage
-func NewStorage(db *pgxpool.Pool, logger *utils.Logger) *Storage {
+func NewStorage(pool *pgxpool.Pool, logger *utils.Logger) *Storage {
 	return &Storage{
-		db:     db,
+		pool:   pool,
 		logger: logger,
 	}
 }
 
 // Ping проверяет подключение к базе данных
 func (s *Storage) Ping(ctx context.Context) error {
-	return s.db.Ping(ctx)
+	err := s.pool.Ping(ctx)
+	if err != nil {
+		s.logger.Error("Ping", "storage.go", fmt.Sprintf("Failed to ping database: %v", err))
+	}
+	return err
 }
 
-// SaveStreamMetadata сохраняет метаданные стрима в таблицу stream_metadata
+// SaveStreamMetadata сохраняет метаданные стрима
+const saveStreamMetadataQuery = `
+	INSERT INTO stream_metadata (stream_id, stream_name, duration, resolution, format, created_at, preview_path)
+	VALUES ($1, $2, $3, $4, $5, $6, $7)
+	ON CONFLICT (stream_id) DO UPDATE
+	SET stream_name = $2, duration = $3, resolution = $4, format = $5, created_at = $6, preview_path = $7
+`
+
 func (s *Storage) SaveStreamMetadata(ctx context.Context, meta *database.StreamMetadata) error {
-	query := `
-		INSERT INTO stream_metadata (stream_id, duration, resolution, format, created_at)
-		VALUES ($1, $2, $3, $4, $5)
-		ON CONFLICT (stream_id) DO NOTHING
-	`
-	_, err := s.db.Exec(ctx, query, meta.StreamID, meta.Duration, meta.Resolution, meta.Format, meta.CreatedAt)
+	_, err := s.pool.Exec(ctx, saveStreamMetadataQuery,
+		meta.StreamID,
+		meta.StreamName,
+		meta.Duration,
+		meta.Resolution,
+		meta.Format,
+		meta.CreatedAt,
+		meta.PreviewPath,
+	)
 	if err != nil {
-		s.logger.Errorf("SaveStreamMetadata", "storage.go", "Failed to save stream metadata for stream ID %s: %v", meta.StreamID, err)
+		s.logger.Error("SaveStreamMetadata", "storage.go", fmt.Sprintf("Failed to save stream metadata for stream_id %s: %v", meta.StreamID, err))
 		return fmt.Errorf("failed to save stream metadata: %w", err)
 	}
-	s.logger.Infof("SaveStreamMetadata", "storage.go", "Stream metadata saved for stream ID: %s", meta.StreamID)
+	s.logger.Info("SaveStreamMetadata", "storage.go", fmt.Sprintf("Saved stream metadata for stream_id %s", meta.StreamID))
 	return nil
 }
 
-// UpdateStreamMetadataStatus обновляет продолжительность стрима в таблице stream_metadata
+// UpdateStreamMetadataStatus обновляет продолжительность стрима
+const updateStreamMetadataStatusQuery = `
+	UPDATE stream_metadata
+	SET duration = $2
+	WHERE stream_id = $1
+`
+
 func (s *Storage) UpdateStreamMetadataStatus(ctx context.Context, streamID string, duration int) error {
-	query := `
-		UPDATE stream_metadata
-		SET duration = $2
-		WHERE stream_id = $1
-	`
-	_, err := s.db.Exec(ctx, query, streamID, duration)
-	if err != nil {
-		s.logger.Errorf("UpdateStreamMetadataStatus", "storage.go", "Failed to update stream metadata duration for stream ID %s: %v", streamID, err)
-		return fmt.Errorf("failed to update stream metadata duration: %w", err)
-	}
-	s.logger.Infof("UpdateStreamMetadataStatus", "storage.go", "Stream metadata duration updated for stream ID: %s", streamID)
-	return nil
+	_, err := s.pool.Exec(ctx, updateStreamMetadataQuery, streamID, duration)
+	return err
 }
 
-// SaveHLSMerkleProof сохраняет Merkle-доказательство для HLS-сегмента в таблицу hls_merkle_proofs
-func (s *Storage) SaveHLSMerkleProof(ctx context.Context, proof *database.HLSMerkleProof) error {
-	query := `
-		INSERT INTO hls_merkle_proofs (stream_id, segment_index, proof_path, created_at)
-		VALUES ($1, $2, $3, $4)
-	`
-	_, err := s.db.Exec(ctx, query, proof.StreamID, proof.SegmentIndex, proof.ProofPath, proof.CreatedAt)
-	if err != nil {
-		s.logger.Errorf("SaveHLSMerkleProof", "storage.go", "Failed to save HLS Merkle proof for stream ID %s, segment index %d: %v", proof.StreamID, proof.SegmentIndex, err)
-		return fmt.Errorf("failed to save HLS Merkle proof: %w", err)
-	}
-	s.logger.Infof("SaveHLSMerkleProof", "storage.go", "HLS Merkle proof saved for stream ID %s, segment index: %d", proof.StreamID, proof.SegmentIndex)
-	return nil
-}
+// UpdateStreamMetadata обновляет метаданные стрима
+const updateStreamMetadataQuery = `
+	UPDATE stream_metadata
+	SET duration = $2, resolution = $3, format = $4, preview_path = $5
+	WHERE stream_id = $1
+`
 
-// SaveHLSPlaylist сохраняет информацию о HLS-плейлисте в таблицу hls_playlists
-func (s *Storage) SaveHLSPlaylist(ctx context.Context, hls *database.HLSPlaylist) error {
-	query := `
-		INSERT INTO hls_playlists (stream_id, playlist_path, created_at)
-		VALUES ($1, $2, $3)
-		RETURNING id
-	`
-	err := s.db.QueryRow(ctx, query, hls.StreamID, hls.PlaylistPath, hls.CreatedAt).Scan(&hls.ID)
-	if err != nil {
-		s.logger.Errorf("SaveHLSPlaylist", "storage.go", "Failed to save HLS playlist for stream ID %s: %v", hls.StreamID, err)
-		return fmt.Errorf("failed to save HLS playlist: %w", err)
-	}
-	s.logger.Infof("SaveHLSPlaylist", "storage.go", "HLS playlist saved for stream ID: %s", hls.StreamID)
-	return nil
-}
-
-// GetHLSPlaylist получает информацию о HLS-плейлисте по stream_id
-func (s *Storage) GetHLSPlaylist(ctx context.Context, streamID string) (*database.HLSPlaylist, error) {
-	query := `
-		SELECT id, stream_id, playlist_path, created_at
-		FROM hls_playlists
-		WHERE stream_id = $1
-	`
-	var hls database.HLSPlaylist
-	err := s.db.QueryRow(ctx, query, streamID).Scan(
-		&hls.ID, &hls.StreamID, &hls.PlaylistPath, &hls.CreatedAt,
+func (s *Storage) UpdateStreamMetadata(ctx context.Context, meta *database.StreamMetadata) error {
+	_, err := s.pool.Exec(ctx, updateStreamMetadataQuery,
+		meta.StreamID,
+		meta.Duration,
+		meta.Resolution,
+		meta.Format,
+		meta.PreviewPath,
 	)
 	if err != nil {
-		s.logger.Errorf("GetHLSPlaylist", "storage.go", "Failed to get HLS playlist for stream ID %s: %v", streamID, err)
-		return nil, fmt.Errorf("failed to get HLS playlist: %w", err)
+		s.logger.Error("UpdateStreamMetadata", "storage.go", fmt.Sprintf("Failed to update stream metadata for stream_id %s: %v", meta.StreamID, err))
+		return fmt.Errorf("failed to update stream metadata: %w", err)
 	}
-	return &hls, nil
+	s.logger.Info("UpdateStreamMetadata", "storage.go", fmt.Sprintf("Updated stream metadata for stream_id %s", meta.StreamID))
+	return nil
 }
 
-// SaveProcessingLog сохраняет лог обработки в таблицу processing_logs
-func (s *Storage) SaveProcessingLog(ctx context.Context, logEntry *database.ProcessingLog) error {
-	query := `
-		INSERT INTO processing_logs (stream_id, log_message, log_level, created_at)
-		VALUES ($1, $2, $3, $4)
-	`
-	_, err := s.db.Exec(ctx, query, logEntry.StreamID, logEntry.LogMessage, logEntry.LogLevel, logEntry.CreatedAt)
+// GetStreamMetadata получает метаданные стрима по stream_id
+const getStreamMetadataQuery = `
+	SELECT stream_id, stream_name, duration, resolution, format, created_at, preview_path
+	FROM stream_metadata
+	WHERE stream_id = $1
+`
+
+func (s *Storage) GetStreamMetadata(ctx context.Context, streamID string) (*database.StreamMetadata, error) {
+	var meta database.StreamMetadata
+	err := s.pool.QueryRow(ctx, getStreamMetadataQuery, streamID).Scan(
+		&meta.StreamID,
+		&meta.StreamName,
+		&meta.Duration,
+		&meta.Resolution,
+		&meta.Format,
+		&meta.CreatedAt,
+		&meta.PreviewPath,
+	)
 	if err != nil {
-		s.logger.Errorf("SaveProcessingLog", "storage.go", "Failed to save processing log for stream ID %s: %v", logEntry.StreamID, err)
+		if err == pgx.ErrNoRows {
+			s.logger.Warning("GetStreamMetadata", "storage.go", fmt.Sprintf("Stream metadata not found for stream_id %s", streamID))
+			return nil, fmt.Errorf("stream metadata not found for stream_id %s", streamID)
+		}
+		s.logger.Error("GetStreamMetadata", "storage.go", fmt.Sprintf("Failed to get stream metadata for stream_id %s: %v", streamID, err))
+		return nil, fmt.Errorf("failed to get stream metadata: %w", err)
+	}
+	return &meta, nil
+}
+
+// GetStreamMetadataByName получает метаданные стрима по stream_name
+const getStreamMetadataByNameQuery = `
+	SELECT stream_id, stream_name, duration, resolution, format, created_at, preview_path
+	FROM stream_metadata
+	WHERE stream_name = $1
+	ORDER BY created_at DESC
+	LIMIT 1
+`
+
+func (s *Storage) GetStreamMetadataByName(ctx context.Context, streamName string) (*database.StreamMetadata, error) {
+	var meta database.StreamMetadata
+	err := s.pool.QueryRow(ctx, getStreamMetadataByNameQuery, streamName).Scan(
+		&meta.StreamID,
+		&meta.StreamName,
+		&meta.Duration,
+		&meta.Resolution,
+		&meta.Format,
+		&meta.CreatedAt,
+		&meta.PreviewPath,
+	)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			s.logger.Warning("GetStreamMetadataByName", "storage.go", fmt.Sprintf("Stream metadata not found for stream_name %s", streamName))
+			return nil, fmt.Errorf("stream metadata not found for stream_name %s", streamName)
+		}
+		s.logger.Error("GetStreamMetadataByName", "storage.go", fmt.Sprintf("Failed to get stream metadata for stream_name %s: %v", streamName, err))
+		return nil, fmt.Errorf("failed to get stream metadata by name: %w", err)
+	}
+	return &meta, nil
+}
+
+// SaveProcessingLog сохраняет лог обработки
+const saveProcessingLogQuery = `
+	INSERT INTO processing_logs (stream_id, stream_name, log_message, log_level, created_at)
+	VALUES ($1, $2, $3, $4, $5)
+	RETURNING id
+`
+
+func (s *Storage) SaveProcessingLog(ctx context.Context, log *database.ProcessingLog) error {
+	err := s.pool.QueryRow(ctx, saveProcessingLogQuery,
+		log.StreamID,
+		log.StreamName,
+		log.LogMessage,
+		log.LogLevel,
+		log.CreatedAt,
+	).Scan(&log.ID)
+	if err != nil {
+		s.logger.Error("SaveProcessingLog", "storage.go", fmt.Sprintf("Failed to save processing log for stream_id %s: %v", log.StreamID, err))
 		return fmt.Errorf("failed to save processing log: %w", err)
 	}
-	s.logger.Infof("SaveProcessingLog", "storage.go", "Processing log saved for stream ID: %s", logEntry.StreamID)
+	s.logger.Info("SaveProcessingLog", "storage.go", fmt.Sprintf("Saved processing log for stream_id %s, log_id %d", log.StreamID, log.ID))
 	return nil
 }
 
-// SaveArchiveEntry сохраняет информацию о завершённом стриме в таблицу archive
-func (s *Storage) SaveArchiveEntry(ctx context.Context, archive *database.Archive) error {
-	query := `
-		INSERT INTO archive (stream_id, status, duration, hls_playlist_path, archived_at)
-		VALUES ($1, $2, $3, $4, $5)
-		RETURNING id
-	`
-	err := s.db.QueryRow(ctx, query, archive.StreamID, archive.Status, archive.Duration, archive.HLSPlaylistPath, archive.ArchivedAt).Scan(&archive.ID)
+// SaveHLSPlaylist сохраняет информацию о HLS-плейлисте
+const saveHLSPlaylistQuery = `
+	INSERT INTO hls_playlists (stream_id, stream_name, playlist_path, created_at)
+	VALUES ($1, $2, $3, $4)
+	RETURNING id
+`
+
+func (s *Storage) SaveHLSPlaylist(ctx context.Context, playlist *database.HLSPlaylist) error {
+	err := s.pool.QueryRow(ctx, saveHLSPlaylistQuery,
+		playlist.StreamID,
+		playlist.StreamName,
+		playlist.PlaylistPath,
+		playlist.CreatedAt,
+	).Scan(&playlist.ID)
 	if err != nil {
-		s.logger.Errorf("SaveArchiveEntry", "storage.go", "Failed to save archive entry for stream ID %s: %v", archive.StreamID, err)
-		return fmt.Errorf("failed to save archive entry: %w", err)
+		s.logger.Error("SaveHLSPlaylist", "storage.go", fmt.Sprintf("Failed to save HLS playlist for stream_id %s: %v", playlist.StreamID, err))
+		return fmt.Errorf("failed to save HLS playlist: %w", err)
 	}
-	s.logger.Infof("SaveArchiveEntry", "storage.go", "Archive entry saved for stream ID: %s", archive.StreamID)
+	s.logger.Info("SaveHLSPlaylist", "storage.go", fmt.Sprintf("Saved HLS playlist for stream_id %s, playlist_id %d", playlist.StreamID, playlist.ID))
 	return nil
 }
 
-// GetArchiveEntry получает запись из таблицы archive по stream_id
+// SaveHLSMerkleProof сохраняет доказательство Merkle для HLS-сегмента
+const saveHLSMerkleProofQuery = `
+	INSERT INTO hls_merkle_proofs (stream_id, stream_name, segment_index, proof_path, created_at)
+	VALUES ($1, $2, $3, $4, $5)
+	RETURNING id
+`
+
+func (s *Storage) SaveHLSMerkleProof(ctx context.Context, proof *database.HLSMerkleProof) error {
+	err := s.pool.QueryRow(ctx, saveHLSMerkleProofQuery,
+		proof.StreamID,
+		proof.StreamName,
+		proof.SegmentIndex,
+		proof.ProofPath,
+		proof.CreatedAt,
+	).Scan(&proof.ID)
+	if err != nil {
+		s.logger.Error("SaveHLSMerkleProof", "storage.go", fmt.Sprintf("Failed to save HLS Merkle proof for stream_id %s, segment_index %d: %v", proof.StreamID, proof.SegmentIndex, err))
+		return fmt.Errorf("failed to save HLS Merkle proof: %w", err)
+	}
+	s.logger.Info("SaveHLSMerkleProof", "storage.go", fmt.Sprintf("Saved HLS Merkle proof for stream_id %s, segment_index %d, proof_id %d", proof.StreamID, proof.SegmentIndex, proof.ID))
+	return nil
+}
+
+// ArchiveStream архивирует стрим
+const archiveStreamQuery = `
+	INSERT INTO archive (stream_id, stream_name, status, duration, hls_playlist_path, archived_at)
+	VALUES ($1, $2, $3, $4, $5, $6)
+	ON CONFLICT (stream_id) DO NOTHING
+	RETURNING id
+`
+
+func (s *Storage) ArchiveStream(ctx context.Context, archive *database.Archive) error {
+	err := s.pool.QueryRow(ctx, archiveStreamQuery,
+		archive.StreamID,
+		archive.StreamName,
+		archive.Status,
+		archive.Duration,
+		archive.HLSPlaylistPath,
+		archive.ArchivedAt,
+	).Scan(&archive.ID)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			s.logger.Info("ArchiveStream", "storage.go", fmt.Sprintf("Stream %s is already archived, skipping", archive.StreamID))
+			return nil // Запись уже существует, дубликат предотвращён
+		}
+		s.logger.Error("ArchiveStream", "storage.go", fmt.Sprintf("Failed to archive stream %s: %v", archive.StreamID, err))
+		return fmt.Errorf("failed to archive stream: %w", err)
+	}
+	s.logger.Info("ArchiveStream", "storage.go", fmt.Sprintf("Archived stream %s, archive_id %d", archive.StreamID, archive.ID))
+	return nil
+}
+
+// GetArchiveEntry получает архивную запись по stream_id
+const getArchiveEntryQuery = `
+	SELECT id, stream_id, stream_name, status, duration, hls_playlist_path, archived_at
+	FROM archive
+	WHERE stream_id = $1
+`
+
 func (s *Storage) GetArchiveEntry(ctx context.Context, streamID string) (*database.Archive, error) {
-	query := `
-		SELECT id, stream_id, status, duration, hls_playlist_path, archived_at
-		FROM archive
-		WHERE stream_id = $1
-	`
 	var archive database.Archive
-	err := s.db.QueryRow(ctx, query, streamID).Scan(
-		&archive.ID, &archive.StreamID, &archive.Status, &archive.Duration, &archive.HLSPlaylistPath, &archive.ArchivedAt,
+	err := s.pool.QueryRow(ctx, getArchiveEntryQuery, streamID).Scan(
+		&archive.ID,
+		&archive.StreamID,
+		&archive.StreamName,
+		&archive.Status,
+		&archive.Duration,
+		&archive.HLSPlaylistPath,
+		&archive.ArchivedAt,
 	)
 	if err != nil {
-		s.logger.Errorf("GetArchiveEntry", "storage.go", "Failed to get archive entry for stream ID %s: %v", streamID, err)
+		if err == pgx.ErrNoRows {
+			s.logger.Warning("GetArchiveEntry", "storage.go", fmt.Sprintf("Archive entry not found for stream_id %s", streamID))
+			return nil, fmt.Errorf("archive entry not found for stream_id %s", streamID)
+		}
+		s.logger.Error("GetArchiveEntry", "storage.go", fmt.Sprintf("Failed to get archive entry for stream_id %s: %v", streamID, err))
 		return nil, fmt.Errorf("failed to get archive entry: %w", err)
 	}
 	return &archive, nil
 }
 
-// GetAllArchiveEntries получает все записи из таблицы archive
-func (s *Storage) GetAllArchiveEntries(ctx context.Context) ([]*database.Archive, error) {
-	query := `
-		SELECT id, stream_id, status, duration, hls_playlist_path, archived_at
-		FROM archive
-		ORDER BY archived_at DESC
-	`
-	rows, err := s.db.Query(ctx, query)
+// GetArchiveEntryByName получает архивную запись по stream_name
+const getArchiveEntryByNameQuery = `
+	SELECT id, stream_id, stream_name, status, duration, hls_playlist_path, archived_at
+	FROM archive
+	WHERE stream_name = $1
+	ORDER BY archived_at DESC
+	LIMIT 1
+`
+
+func (s *Storage) GetArchiveEntryByName(ctx context.Context, streamName string) (*database.Archive, error) {
+	var archive database.Archive
+	err := s.pool.QueryRow(ctx, getArchiveEntryByNameQuery, streamName).Scan(
+		&archive.ID,
+		&archive.StreamID,
+		&archive.StreamName,
+		&archive.Status,
+		&archive.Duration,
+		&archive.HLSPlaylistPath,
+		&archive.ArchivedAt,
+	)
 	if err != nil {
-		s.logger.Errorf("GetAllArchiveEntries", "storage.go", "Failed to query archived streams: %v", err)
-		return nil, fmt.Errorf("failed to query archived streams: %v", err)
+		if err == pgx.ErrNoRows {
+			s.logger.Warningf("GetArchiveEntryByName", "storage.go", "Archive entry not found for stream_name %s", streamName)
+			return nil, fmt.Errorf("archive entry not found for stream_name %s", streamName)
+		}
+		s.logger.Error("GetArchiveEntryByName", "storage.go", fmt.Sprintf("Failed to get archive entry for stream_name %s: %v", streamName, err))
+		return nil, fmt.Errorf("failed to get archive entry by name: %w", err)
+	}
+	return &archive, nil
+}
+
+// GetAllArchiveEntries получает все архивные записи
+const getAllArchiveEntriesQuery = `
+	SELECT id, stream_id, stream_name, status, duration, hls_playlist_path, archived_at
+	FROM archive
+`
+
+func (s *Storage) GetAllArchiveEntries(ctx context.Context) ([]*database.Archive, error) {
+	rows, err := s.pool.Query(ctx, getAllArchiveEntriesQuery)
+	if err != nil {
+		s.logger.Error("GetAllArchiveEntries", "storage.go", fmt.Sprintf("Failed to get all archive entries: %v", err))
+		return nil, fmt.Errorf("failed to get all archive entries: %w", err)
 	}
 	defer rows.Close()
 
@@ -176,36 +329,24 @@ func (s *Storage) GetAllArchiveEntries(ctx context.Context) ([]*database.Archive
 	for rows.Next() {
 		var archive database.Archive
 		if err := rows.Scan(
-			&archive.ID, &archive.StreamID, &archive.Status, &archive.Duration, &archive.HLSPlaylistPath, &archive.ArchivedAt,
+			&archive.ID,
+			&archive.StreamID,
+			&archive.StreamName,
+			&archive.Status,
+			&archive.Duration,
+			&archive.HLSPlaylistPath,
+			&archive.ArchivedAt,
 		); err != nil {
-			s.logger.Errorf("GetAllArchiveEntries", "storage.go", "Failed to scan archived stream: %v", err)
-			continue
+			s.logger.Error("GetAllArchiveEntries", "storage.go", fmt.Sprintf("Failed to scan archive entry: %v", err))
+			return nil, fmt.Errorf("failed to scan archive entry: %w", err)
 		}
 		archives = append(archives, &archive)
 	}
 
 	if err := rows.Err(); err != nil {
-		s.logger.Errorf("GetAllArchiveEntries", "storage.go", "Error iterating archived streams: %v", err)
-		return nil, fmt.Errorf("error iterating archived streams: %v", err)
+		s.logger.Error("GetAllArchiveEntries", "storage.go", fmt.Sprintf("Error iterating archive entries: %v", err))
+		return nil, fmt.Errorf("error iterating archive entries: %w", err)
 	}
 
 	return archives, nil
-}
-
-// GetStreamMetadata получает метаданные стрима по stream_id
-func (s *Storage) GetStreamMetadata(ctx context.Context, streamID string) (*database.StreamMetadata, error) {
-	query := `
-		SELECT stream_id, duration, resolution, format, created_at
-		FROM stream_metadata
-		WHERE stream_id = $1
-	`
-	var meta database.StreamMetadata
-	err := s.db.QueryRow(ctx, query, streamID).Scan(
-		&meta.StreamID, &meta.Duration, &meta.Resolution, &meta.Format, &meta.CreatedAt,
-	)
-	if err != nil {
-		s.logger.Errorf("GetStreamMetadata", "storage.go", "Failed to get stream metadata for stream ID %s: %v", streamID, err)
-		return nil, fmt.Errorf("failed to get stream metadata: %w", err)
-	}
-	return &meta, nil
 }

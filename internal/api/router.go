@@ -5,6 +5,8 @@ import (
 	"rstp-rsmt-server/internal/config"
 	"rstp-rsmt-server/internal/stream"
 	"rstp-rsmt-server/internal/utils"
+
+	"github.com/gorilla/mux"
 )
 
 // Router настраивает маршруты для API
@@ -16,7 +18,7 @@ type Router struct {
 
 // NewRouter создает новый Router
 func NewRouter(cfg *config.Config, logger *utils.Logger, streamManager *stream.StreamManager, hlsManager *stream.HLSManager) *Router {
-	handler := NewHandler(logger, streamManager, hlsManager)
+	handler := NewHandler(logger, cfg, streamManager, hlsManager)
 	return &Router{
 		logger:  logger,
 		cfg:     cfg,
@@ -26,7 +28,7 @@ func NewRouter(cfg *config.Config, logger *utils.Logger, streamManager *stream.S
 
 // SetupRoutes настраивает маршруты и возвращает http.Handler
 func (r *Router) SetupRoutes() http.Handler {
-	mux := http.NewServeMux()
+	router := mux.NewRouter()
 
 	// Применяем middleware ко всем маршрутам
 	logging := LoggingMiddleware(r.logger)
@@ -45,15 +47,19 @@ func (r *Router) SetupRoutes() http.Handler {
 	}
 
 	// Регистрируем маршруты
-	mux.HandleFunc("/health", r.chainMiddleware(r.handler.HealthHandler, logging, errorHandling, cors))
-	mux.HandleFunc("/start-stream", r.chainMiddleware(r.handler.StartStreamHandler, logging, errorHandling, cors))
-	mux.HandleFunc("/stop-stream", r.chainMiddleware(r.handler.StopStreamHandler, logging, errorHandling, cors))
-	mux.HandleFunc("/list-streams", r.chainMiddleware(r.handler.ListStreamsHandler, logging, errorHandling, cors))
-	mux.HandleFunc("/stream/", r.chainMiddleware(r.handler.StreamHandler, logging, errorHandling, cors))
-	mux.HandleFunc("/archive/list", r.chainMiddleware(r.handler.ListArchivedStreamsHandler, logging, errorHandling, cors))
-	mux.HandleFunc("/archive/", r.chainMiddleware(r.handler.ArchiveHandler, logging, errorHandling, cors))
+	router.HandleFunc("/health", r.chainMiddleware(r.handler.HealthHandler, logging, errorHandling, cors)).Methods("GET")
+	router.HandleFunc("/start-stream", r.chainMiddleware(r.handler.StartStreamHandler, logging, errorHandling, cors)).Methods("POST")
+	router.HandleFunc("/stop-stream", r.chainMiddleware(r.handler.StopStreamHandler, logging, errorHandling, cors)).Methods("POST")
+	router.HandleFunc("/list-streams", r.chainMiddleware(r.handler.ListStreamsHandler, logging, errorHandling, cors)).Methods("GET")
+	router.HandleFunc("/stream/{stream_name}", r.chainMiddleware(r.handler.StreamHandler, logging, errorHandling, cors)).Methods("GET", "OPTIONS")
+	router.HandleFunc("/stream/{stream_name}/{segment}", r.chainMiddleware(r.handler.StreamHandler, logging, errorHandling, cors)).Methods("GET", "OPTIONS")
+	router.HandleFunc("/archive/list", r.chainMiddleware(r.handler.ListArchivedStreamsHandler, logging, errorHandling, cors)).Methods("GET")
+	router.HandleFunc("/archive/{stream_name}", r.chainMiddleware(r.handler.ArchiveHandler, logging, errorHandling, cors)).Methods("GET", "OPTIONS")
+	router.HandleFunc("/archive/{stream_name}/{segment}", r.chainMiddleware(r.handler.ArchiveHandler, logging, errorHandling, cors)).Methods("GET", "OPTIONS")
+	router.HandleFunc("/preview/{stream_name}", r.chainMiddleware(r.handler.PreviewHandler, logging, errorHandling, cors)).Methods("GET", "OPTIONS")
+	router.HandleFunc("/update-config", r.chainMiddleware(r.handler.UpdateConfigHandler, logging, errorHandling, cors)).Methods("POST")
 
-	return mux
+	return router
 }
 
 // chainMiddleware применяет цепочку middleware к обработчику

@@ -91,9 +91,40 @@ func (c *RTSPClient) checkStreamInfo(ctx context.Context, rtspURL string) (Strea
 
 	return info, nil
 }
+func (c *RTSPClient) extractFirstFrame(ctx context.Context, rtspURL string, hlsDir string) (string, error) {
+	previewPath := filepath.Join(hlsDir, "preview.jpg")
+
+	// Используем FFmpeg для извлечения первого кадра
+	ffmpegCmd := exec.CommandContext(ctx, "ffmpeg",
+		"-i", rtspURL,
+		"-rtsp_transport", "tcp",
+		"-vframes", "1", // Извлекаем только один кадр
+		"-ss", "00:00:01", // Пропускаем первую секунду, чтобы получить качественный кадр
+		"-f", "image2",
+		previewPath,
+	)
+
+	var stderr bytes.Buffer
+	ffmpegCmd.Stderr = &stderr
+	ffmpegCmd.Stdout = &stderr
+
+	if err := ffmpegCmd.Run(); err != nil {
+		c.logger.Error("extractFirstFrame", "rtsp.go", fmt.Sprintf("Failed to extract first frame: %v, FFmpeg output: %s", err, stderr.String()))
+		return "", fmt.Errorf("failed to extract first frame: %w, FFmpeg output: %s", err, stderr.String())
+	}
+
+	// Проверяем, что файл превью был создан
+	if _, err := os.Stat(previewPath); os.IsNotExist(err) {
+		return "", fmt.Errorf("preview file was not created at %s", previewPath)
+	}
+
+	c.logger.Info("extractFirstFrame", "rtsp.go", fmt.Sprintf("Successfully extracted first frame to %s", previewPath))
+	return previewPath, nil
+}
 
 // ProcessStream обрабатывает RTSP-поток
-func (c *RTSPClient) ProcessStream(ctx context.Context, rtspURL string, streamID string, hlsPath string) error {
+// ProcessStream обрабатывает RTSP-поток
+func (c *RTSPClient) ProcessStream(ctx context.Context, rtspURL string, streamID string, streamName string, hlsPath string) error {
 	// Логируем начало обработки
 	c.logger.Info("ProcessStream", "rtsp.go", fmt.Sprintf("Starting to process RTSP stream: %s", rtspURL))
 
@@ -109,6 +140,14 @@ func (c *RTSPClient) ProcessStream(ctx context.Context, rtspURL string, streamID
 		return fmt.Errorf("RTSP stream is unavailable: %w", err)
 	}
 
+	// Извлекаем первый кадр как превью
+	hlsDir := filepath.Dir(hlsPath)
+	previewPath, err := c.extractFirstFrame(ctx, rtspURL, hlsDir)
+	if err != nil {
+		c.logger.Error("ProcessStream", "rtsp.go", fmt.Sprintf("Failed to extract preview for stream %s: %v", streamID, err))
+		// Не прерываем выполнение, так как это не критично
+	}
+
 	// Проверяем наличие видео- и аудиопотоков
 	streamInfo, err := c.checkStreamInfo(ctx, rtspURL)
 	if err != nil {
@@ -119,30 +158,45 @@ func (c *RTSPClient) ProcessStream(ctx context.Context, rtspURL string, streamID
 
 	// Папка для HLS уже создана в StartStream, используем переданный hlsPath
 	hlsPlaylist := hlsPath
-	hlsDir := filepath.Dir(hlsPath)
+
+	// Проверяем подключение к базе данных перед сохранением
+	c.logger.Info("ProcessStream", "rtsp.go", "Checking database connection before saving metadata")
+	if err := c.storage.Ping(ctx); err != nil {
+		c.logger.Error("ProcessStream", "rtsp.go", fmt.Sprintf("Database connection failed: %v", err))
+		return fmt.Errorf("database connection failed: %w", err)
+	}
 
 	// Сохраняем метаданные стрима в базе данных
+	c.logger.Info("ProcessStream", "rtsp.go", fmt.Sprintf("Saving stream metadata for streamID %s", streamID))
 	meta := &database.StreamMetadata{
-		StreamID:   streamID,
-		Duration:   0, // Будет обновлено позже
-		Resolution: "1920x1080",
-		Format:     "hls",
-		CreatedAt:  time.Now(),
+		StreamID:    streamID,
+		StreamName:  streamName,
+		Duration:    0,
+		Resolution:  "1920x1080",
+		Format:      "hls",
+		CreatedAt:   time.Now(),
+		PreviewPath: previewPath, // Сохраняем путь к превью
 	}
 	if err := c.storage.SaveStreamMetadata(ctx, meta); err != nil {
+		c.logger.Error("ProcessStream", "rtsp.go", fmt.Sprintf("Failed to save stream metadata: %v", err))
 		return fmt.Errorf("failed to save stream metadata: %w", err)
 	}
+	c.logger.Info("ProcessStream", "rtsp.go", "Stream metadata saved successfully")
 
 	// Сохраняем лог обработки
+	c.logger.Info("ProcessStream", "rtsp.go", fmt.Sprintf("Saving processing log for streamID %s", streamID))
 	logEntry := &database.ProcessingLog{
 		StreamID:   streamID,
+		StreamName: streamName,
 		LogMessage: "Started processing RTSP stream",
 		LogLevel:   "info",
 		CreatedAt:  time.Now(),
 	}
 	if err := c.storage.SaveProcessingLog(ctx, logEntry); err != nil {
+		c.logger.Error("ProcessStream", "rtsp.go", fmt.Sprintf("Failed to save processing log: %v", err))
 		return fmt.Errorf("failed to save processing log: %w", err)
 	}
+	c.logger.Info("ProcessStream", "rtsp.go", "Processing log saved successfully")
 
 	// Каналы для координации этапов
 	type recordResult struct {
@@ -164,71 +218,72 @@ func (c *RTSPClient) ProcessStream(ctx context.Context, rtspURL string, streamID
 	// Этап 1: Генерация HLS
 	go func() {
 		defer func() {
-			c.logger.Infof("ProcessStream", "rtsp.go", "FFmpeg recording process for stream %s completed", streamID)
+			c.logger.Info("ProcessStream", "rtsp.go", fmt.Sprintf("FFmpeg recording process for stream %s completed", streamID))
 		}()
 
-		args := []string{
-			// Входные параметры с улучшенной буферизацией
-			"-fflags", "+genpts+discardcorrupt",
-			"-use_wallclock_as_timestamps", "1",
-			"-rtsp_transport", "tcp",
-			"-buffer_size", "8192k", // Увеличенный буфер ввода
-			"-rtsp_flags", "prefer_tcp",
-			"-timeout", "5000000", // Корректный параметр таймаута для вашей версии FFmpeg
-			"-i", rtspURL,
-
-			// Видеокодирование с профессиональными настройками
-			"-c:v", "libx264",
-			"-preset", "ultrafast", // Наименьшая задержка кодирования
-			"-tune", "zerolatency",
-			"-profile:v", "baseline", // Базовый профиль для большей совместимости
-			"-level", "3.0",
-			"-r", "30",
-			"-g", "30", // GOP размером в 1 секунду
-			"-keyint_min", "30", // Минимальный интервал между ключевыми кадрами
-			"-sc_threshold", "0", // Отключить обнаружение смены сцен
-			"-b:v", "2000k", // Фиксированный битрейт
-			"-maxrate", "2500k",
-			"-minrate", "1500k",
-			"-bufsize", "3000k",
-			"-pix_fmt", "yuv420p", // Стандартный цветовой формат
-
-			// Дополнительные параметры для стабильности видео
-			"-x264-params", "no-scenecut=1:bframes=0", // Корректный синтаксис для x264 параметров
-			"-vsync", "1", // Режим синхронизации видео
-			"-avoid_negative_ts", "1",
+		// Формируем входные параметры
+		inputParams := &InputParams{
+			RTSPURL:       rtspURL,
+			BufferSize:    "8192k",
+			Timeout:       "5000000",
+			RTSPFlags:     "prefer_tcp",
+			RTSPTransport: "tcp",
 		}
 
-		// Добавляем маппинг видеопотока
-		args = append(args, "-map", "0:v:0")
+		// Формируем параметры видеокодирования, используя значения из конфигурации
+		videoParams := &VideoEncodingParams{
+			Codec:       VideoCodecH264,
+			Preset:      PresetUltrafast,
+			Tune:        TuneZerolatency,
+			Profile:     ProfileBaseline,
+			Level:       Level3_0,
+			FrameRate:   c.cfg.FFmpeg.FrameRate,
+			GOPSize:     c.cfg.FFmpeg.GOPSize,
+			KeyIntMin:   c.cfg.FFmpeg.KeyIntMin,
+			Bitrate:     c.cfg.FFmpeg.VideoBitrate,
+			MaxRate:     c.cfg.FFmpeg.VideoMaxRate,
+			MinRate:     c.cfg.FFmpeg.VideoMinRate,
+			BufSize:     c.cfg.FFmpeg.VideoBufSize,
+			PixelFormat: PixelFormatYUV420P,
+			SceneChange: false,
+			BFrames:     0,
+			VSync:       "1",
+			AvoidNegTS:  "1",
+		}
 
-		// Если есть аудиопоток, добавляем его маппинг и кодирование
+		// Формируем параметры аудиокодирования (если есть аудио), используя значения из конфигурации
+		var audioParams *AudioEncodingParams
 		if streamInfo.HasAudio {
-			args = append(args,
-				"-map", "0:a:0",
-				"-c:a", "aac",
-				"-b:a", "128k",
-				"-ar", "44100",
-			)
+			audioParams = &AudioEncodingParams{
+				Codec:      AudioCodecAAC,
+				Bitrate:    c.cfg.FFmpeg.AudioBitrate,
+				SampleRate: c.cfg.FFmpeg.AudioSampleRate,
+			}
 		}
 
-		// Формируем HLS-опции
+		// Формируем HLS параметры, используя значения из конфигурации
 		hlsSegmentPattern := fmt.Sprintf("%s/%s_segment_%%03d.ts", hlsDir, streamID)
+		hlsParams := &HLSParams{
+			HLSFormat:      HLSFormatMPEGTS,
+			SegmentTime:    c.cfg.FFmpeg.HLSSegmentTime,
+			HLSListSize:    c.cfg.FFmpeg.HLSListSize,
+			HLSFlags:       "append_list+discont_start+split_by_time",
+			SegmentPattern: hlsSegmentPattern,
+			InitTime:       "0",
+			MPEGTSFlags:    "+resend_headers",
+			PATPeriod:      "0.1",
+			SDTPeriod:      "0.1",
+			PlaylistPath:   hlsPlaylist,
+		}
 
-		// Параметры формирования HLS - исправленная версия для вашей версии FFmpeg
-		args = append(args,
-			"-f", "hls",
-			"-hls_time", "2", // Меньший размер сегмента для более плавного переключения
-			"-hls_list_size", "10", // Меньшее количество сегментов в плейлисте
-			"-hls_flags", "delete_segments+append_list+discont_start+split_by_time",
-			"-hls_segment_type", "mpegts",
-			"-hls_segment_filename", hlsSegmentPattern,
-			"-hls_init_time", "0",
-			"-mpegts_flags", "+resend_headers", // Разделены параметры mpegts для большей совместимости
-			"-pat_period", "0.1",
-			"-sdt_period", "0.1",
-			hlsPlaylist,
-		)
+		// Собираем все аргументы
+		args := inputParams.ToArgs()
+		args = append(args, videoParams.ToArgs()...)
+		args = append(args, "-map", "0:v:0") // Маппинг видеопотока
+		if streamInfo.HasAudio && audioParams != nil {
+			args = append(args, audioParams.ToArgs()...)
+		}
+		args = append(args, hlsParams.ToArgs()...)
 
 		ffmpegCmd := exec.Command("ffmpeg", args...)
 
@@ -275,7 +330,7 @@ func (c *RTSPClient) ProcessStream(ctx context.Context, rtspURL string, streamID
 		select {
 		case <-ctx.Done():
 			// При отмене контекста отправляем команду 'q' для мягкого завершения
-			c.logger.Infof("ProcessStream", "rtsp.go", "Received cancellation, sending 'q' to FFmpeg for stream %s", streamID)
+			c.logger.Info("ProcessStream", "rtsp.go", fmt.Sprintf("Received cancellation, sending 'q' to FFmpeg for stream %s", streamID))
 			if ffmpegCmd.Process != nil {
 				// Отправляем команду 'q' через уже настроенный Stdin
 				if _, err := stdin.Write([]byte("q\n")); err != nil {
@@ -327,7 +382,11 @@ func (c *RTSPClient) ProcessStream(ctx context.Context, rtspURL string, streamID
 		// Обновляем продолжительность в stream_metadata
 		newCtx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		if err := c.storage.UpdateStreamMetadataStatus(newCtx, streamID, duration); err != nil {
+		metaUpdate := &database.StreamMetadata{
+			StreamID: streamID,
+			Duration: duration,
+		}
+		if err := c.storage.UpdateStreamMetadata(newCtx, metaUpdate); err != nil {
 			c.logger.Error("ProcessStream", "rtsp.go", fmt.Sprintf("Failed to update stream metadata duration: %v", err))
 		}
 		return res.err
@@ -338,17 +397,21 @@ func (c *RTSPClient) ProcessStream(ctx context.Context, rtspURL string, streamID
 	defer cancel()
 
 	// Логируем продолжение обработки
-	c.logger.Infof("ProcessStream", "rtsp.go", "Proceeding with post-processing for streamID %s", streamID)
+	c.logger.Info("ProcessStream", "rtsp.go", fmt.Sprintf("Proceeding with post-processing for streamID %s", streamID))
 
 	// Обновляем продолжительность в stream_metadata
-	if err := c.storage.UpdateStreamMetadataStatus(newCtx, streamID, duration); err != nil {
+	metaUpdate := &database.StreamMetadata{
+		StreamID: streamID,
+		Duration: duration,
+	}
+	if err := c.storage.UpdateStreamMetadata(newCtx, metaUpdate); err != nil {
 		c.logger.Error("ProcessStream", "rtsp.go", fmt.Sprintf("Failed to update stream metadata duration: %v", err))
 		return fmt.Errorf("failed to update stream metadata duration: %w", err)
 	}
 
 	// Этап 2: Построение Merkle-дерева для HLS-сегментов
 	go func() {
-		c.logger.Infof("ProcessStream", "rtsp.go", "Starting Merkle tree construction for HLS segments of streamID %s", streamID)
+		c.logger.Info("ProcessStream", "rtsp.go", fmt.Sprintf("Starting Merkle tree construction for HLS segments of streamID %s", streamID))
 		blocks, tree, err := c.buildMerkleTreeForHLSSegments(hlsDir, streamID)
 		merkleChan <- merkleResult{blocks: blocks, tree: tree, err: err}
 	}()
@@ -368,7 +431,7 @@ func (c *RTSPClient) ProcessStream(ctx context.Context, rtspURL string, streamID
 	}
 
 	// Логируем перед сохранением метаданных
-	c.logger.Infof("ProcessStream", "rtsp.go", "Preparing to save HLS Merkle proofs for streamID %s", streamID)
+	c.logger.Info("ProcessStream", "rtsp.go", fmt.Sprintf("Preparing to save HLS Merkle proofs for streamID %s", streamID))
 
 	// Проверяем подключение к базе данных
 	if err := c.storage.Ping(newCtx); err != nil {
@@ -392,6 +455,7 @@ func (c *RTSPClient) ProcessStream(ctx context.Context, rtspURL string, streamID
 
 		merkleProof := &database.HLSMerkleProof{
 			StreamID:     streamID,
+			StreamName:   streamName,
 			SegmentIndex: i,
 			ProofPath:    string(proofPath),
 			CreatedAt:    time.Now(),
@@ -405,6 +469,7 @@ func (c *RTSPClient) ProcessStream(ctx context.Context, rtspURL string, streamID
 	// Сохраняем информацию о HLS в базе данных
 	hlsPlaylistEntry := &database.HLSPlaylist{
 		StreamID:     streamID,
+		StreamName:   streamName,
 		PlaylistPath: hlsPlaylist,
 		CreatedAt:    time.Now(),
 	}
@@ -412,17 +477,18 @@ func (c *RTSPClient) ProcessStream(ctx context.Context, rtspURL string, streamID
 		c.logger.Error("ProcessStream", "rtsp.go", fmt.Sprintf("Failed to save HLS playlist: %v", err))
 		return fmt.Errorf("failed to save HLS playlist: %w", err)
 	}
-	c.logger.Infof("ProcessStream", "rtsp.go", "HLS generated at %s for streamID %s", hlsPlaylist, streamID)
+	c.logger.Info("ProcessStream", "rtsp.go", fmt.Sprintf("HLS generated at %s for streamID %s", hlsPlaylist, streamID))
 
 	// Сохраняем информацию о завершённом стриме в таблицу archive
 	archiveEntry := &database.Archive{
 		StreamID:        streamID,
+		StreamName:      streamName,
 		Status:          "completed",
 		Duration:        duration,
 		HLSPlaylistPath: hlsPlaylist,
 		ArchivedAt:      time.Now(),
 	}
-	if err := c.storage.SaveArchiveEntry(newCtx, archiveEntry); err != nil {
+	if err := c.storage.ArchiveStream(newCtx, archiveEntry); err != nil {
 		c.logger.Error("ProcessStream", "rtsp.go", fmt.Sprintf("Failed to save archive entry: %v", err))
 		return fmt.Errorf("failed to save archive entry: %w", err)
 	}
@@ -430,6 +496,7 @@ func (c *RTSPClient) ProcessStream(ctx context.Context, rtspURL string, streamID
 	// Логируем успешное завершение
 	logEntry = &database.ProcessingLog{
 		StreamID:   streamID,
+		StreamName: streamName,
 		LogMessage: "Successfully processed RTSP stream",
 		LogLevel:   "info",
 		CreatedAt:  time.Now(),

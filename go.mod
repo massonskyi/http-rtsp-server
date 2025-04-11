@@ -5,6 +5,8 @@ go 1.24.2
 require (
 	github.com/deepch/vdk v0.0.27 // indirect
 	github.com/fatih/color v1.18.0 // indirect
+	github.com/google/uuid v1.6.0 // indirect
+	github.com/gorilla/mux v1.8.1 // indirect
 	github.com/grafov/m3u8 v0.12.1 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect

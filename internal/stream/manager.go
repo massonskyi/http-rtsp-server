@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"rstp-rsmt-server/internal/config"
 	"rstp-rsmt-server/internal/database"
@@ -14,53 +15,43 @@ import (
 	"time"
 )
 
-// Stream представляет RTSP-поток
-type Stream struct {
-	ID        string
-	RTSPURL   string
-	HLSPath   string
-	StartedAt time.Time
-	Status    string
-	logger    *utils.Logger
-	cfg       *config.Config
-	storage   *storage.Storage
+// StreamManager управляет активными RTSP-потоками
+type StreamManager struct {
+	mutex   sync.RWMutex
+	streams map[string]*Stream
+	cfg     *config.Config
+	logger  *utils.Logger
+	storage *storage.Storage
+	client  *protocol.RTSPClient
 }
 
-// StreamManager управляет потоками
-type StreamManager struct {
-	streams    map[string]*Stream
-	mutex      sync.RWMutex
-	logger     *utils.Logger
+// Stream представляет один RTSP-поток
+type Stream struct {
+	ID         string
+	StreamName string // Новое поле
+	RTSPURL    string
+	HLSPath    string
+	StartedAt  time.Time
+	Status     string
 	cfg        *config.Config
-	storage    *storage.Storage
-	rtspClient *protocol.RTSPClient
+	logger     *utils.Logger
+	cancel     context.CancelFunc
+	cmd        *exec.Cmd
 }
 
 // NewStreamManager создает новый StreamManager
-func NewStreamManager(cfg *config.Config, logger *utils.Logger, storage *storage.Storage, rtspClient *protocol.RTSPClient) *StreamManager {
+func NewStreamManager(cfg *config.Config, logger *utils.Logger, storage *storage.Storage, client *protocol.RTSPClient) *StreamManager {
 	return &StreamManager{
-		streams:    make(map[string]*Stream),
-		logger:     logger,
-		cfg:        cfg,
-		storage:    storage,
-		rtspClient: rtspClient,
-	}
-}
-
-// Shutdown останавливает все активные стримы
-func (sm *StreamManager) Shutdown() {
-	sm.mutex.Lock()
-	defer sm.mutex.Unlock()
-
-	for streamID := range sm.streams {
-		if err := sm.StopStream(streamID); err != nil {
-			sm.logger.Error("Shutdown", "stream.go", fmt.Sprintf("Failed to stop stream %s: %v", streamID, err))
-		}
+		streams: make(map[string]*Stream),
+		cfg:     cfg,
+		logger:  logger,
+		storage: storage,
+		client:  client,
 	}
 }
 
 // StartStream запускает обработку RTSP-потока
-func (sm *StreamManager) StartStream(rtspURL, streamID string) error {
+func (sm *StreamManager) StartStream(rtspURL string, streamID string, streamName string) error {
 	sm.mutex.Lock()
 	defer sm.mutex.Unlock()
 
@@ -68,51 +59,49 @@ func (sm *StreamManager) StartStream(rtspURL, streamID string) error {
 		return fmt.Errorf("stream %s already exists", streamID)
 	}
 
-	// Создаем директорию для HLS
+	// Создаем путь для HLS
 	hlsDir := filepath.Join(sm.cfg.HLSDir, streamID)
-	if err := os.MkdirAll(hlsDir, 0755); err != nil {
-		sm.logger.Error("StartStream", "stream.go", fmt.Sprintf("Failed to create HLS directory for stream %s: %v", streamID, err))
+	if err := utils.EnsureDir(hlsDir); err != nil {
 		return fmt.Errorf("failed to create HLS directory: %w", err)
 	}
+	hlsPath := filepath.Join(hlsDir, ".m3u8")
 
-	// Путь к HLS-плейлисту
-	hlsPlaylist := filepath.Join(hlsDir, fmt.Sprintf("%s.m3u8", streamID))
+	// Создаем контекст для управления FFmpeg
+	ctx, cancel := context.WithCancel(context.Background())
 
-	// Создаем стрим
+	// Создаем новый стрим
 	stream := &Stream{
-		ID:        streamID,
-		RTSPURL:   rtspURL,
-		HLSPath:   hlsPlaylist,
-		StartedAt: time.Now(),
-		Status:    "processing",
-		logger:    sm.logger,
-		cfg:       sm.cfg,
-		storage:   sm.storage,
+		ID:         streamID,
+		StreamName: streamName,
+		RTSPURL:    rtspURL,
+		HLSPath:    hlsPath,
+		StartedAt:  time.Now(),
+		Status:     "running",
+		cfg:        sm.cfg,
+		logger:     sm.logger,
+		cancel:     cancel,
 	}
 
-	// Сохраняем стрим в менеджере
+	// Сохраняем стрим
 	sm.streams[streamID] = stream
 
-	// Запускаем обработку RTSP-потока через RTSPClient в отдельной горутине
+	// Запускаем обработку RTSP-потока в горутине
 	go func() {
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
-
-		if err := sm.rtspClient.ProcessStream(ctx, rtspURL, streamID, hlsPlaylist); err != nil {
+		err := sm.client.ProcessStream(ctx, rtspURL, streamID, streamName, hlsPath)
+		if err != nil {
+			sm.mutex.Lock()
+			if s, exists := sm.streams[streamID]; exists {
+				s.Status = "failed"
+			}
+			sm.mutex.Unlock()
 			sm.logger.Error("StartStream", "stream.go", fmt.Sprintf("Failed to process stream %s: %v", streamID, err))
-			// Обновляем статус стрима
-			stream.Status = "failed"
-			return
 		}
-
-		// Если обработка завершена успешно, обновляем статус
-		stream.Status = "completed"
 	}()
 
-	// Запускаем горутину для обновления продолжительности
-	go stream.updateDuration()
-
 	return nil
+}
+func (sm *StreamManager) Storage() *storage.Storage {
+	return sm.storage
 }
 
 // StopStream останавливает обработку RTSP-потока
@@ -125,26 +114,54 @@ func (sm *StreamManager) StopStream(streamID string) error {
 		return fmt.Errorf("stream %s not found", streamID)
 	}
 
+	// Отменяем контекст, чтобы завершить FFmpeg
+	if stream.cancel != nil {
+		stream.cancel()
+	}
+
 	// Обновляем статус
 	stream.Status = "completed"
 
 	// Сохраняем в архив
 	archive := &database.Archive{
 		StreamID:        streamID,
+		StreamName:      stream.StreamName,
 		Status:          stream.Status,
-		Duration:        stream.getDuration(),
+		Duration:        int(time.Since(stream.StartedAt).Seconds()),
 		HLSPlaylistPath: stream.HLSPath,
 		ArchivedAt:      time.Now(),
 	}
-	if err := sm.storage.SaveArchiveEntry(context.Background(), archive); err != nil {
+	if err := sm.storage.ArchiveStream(context.Background(), archive); err != nil {
 		sm.logger.Error("StopStream", "stream.go", fmt.Sprintf("Failed to save archive entry for stream %s: %v", streamID, err))
-		// Не прерываем выполнение, но логируем ошибку
+		return fmt.Errorf("failed to save archive entry: %w", err)
 	}
 
 	// Удаляем стрим из менеджера
 	delete(sm.streams, streamID)
 
 	return nil
+}
+
+// GetStream получает стрим по stream_id
+func (sm *StreamManager) GetStream(streamID string) (*Stream, bool) {
+	sm.mutex.RLock()
+	defer sm.mutex.RUnlock()
+
+	stream, exists := sm.streams[streamID]
+	return stream, exists
+}
+
+// GetStreamByName получает стрим по stream_name
+func (sm *StreamManager) GetStreamByName(streamName string) (*Stream, bool) {
+	sm.mutex.RLock()
+	defer sm.mutex.RUnlock()
+
+	for _, stream := range sm.streams {
+		if stream.StreamName == streamName {
+			return stream, true
+		}
+	}
+	return nil, false
 }
 
 // ListStreams возвращает список всех активных стримов
@@ -159,45 +176,43 @@ func (sm *StreamManager) ListStreams() map[string]*Stream {
 	return streams
 }
 
-// GetStream возвращает стрим по ID
-func (sm *StreamManager) GetStream(streamID string) (*Stream, bool) {
-	sm.mutex.RLock()
-	defer sm.mutex.RUnlock()
+// Shutdown останавливает все активные стримы
+func (sm *StreamManager) Shutdown() {
+	sm.mutex.Lock()
+	defer sm.mutex.Unlock()
 
-	stream, exists := sm.streams[streamID]
-	return stream, exists
-}
+	for streamID, stream := range sm.streams {
+		if stream.cancel != nil {
+			stream.cancel()
+		}
+		// Обновляем статус
+		stream.Status = "completed"
 
-// Storage возвращает хранилище
-func (sm *StreamManager) Storage() *storage.Storage {
-	return sm.storage
-}
-
-// updateDuration обновляет продолжительность стрима
-func (s *Stream) updateDuration() {
-	ticker := time.NewTicker(5 * time.Second)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ticker.C:
-			if s.Status != "processing" {
-				return
-			}
-			duration := s.getDuration()
-			if err := s.storage.UpdateStreamMetadataStatus(context.Background(), s.ID, duration); err != nil {
-				s.logger.Error("updateDuration", "stream.go", fmt.Sprintf("Failed to update duration for stream %s: %v", s.ID, err))
-			}
+		// Сохраняем в архив
+		archive := &database.Archive{
+			StreamID:        streamID,
+			StreamName:      stream.StreamName,
+			Status:          stream.Status,
+			Duration:        int(time.Since(stream.StartedAt).Seconds()),
+			HLSPlaylistPath: stream.HLSPath,
+			ArchivedAt:      time.Now(),
+		}
+		if err := sm.storage.ArchiveStream(context.Background(), archive); err != nil {
+			sm.logger.Error("Shutdown", "stream.go", fmt.Sprintf("Failed to save archive entry for stream %s: %v", streamID, err))
 		}
 	}
-}
-
-// getDuration возвращает текущую продолжительность стрима
-func (s *Stream) getDuration() int {
-	return int(time.Since(s.StartedAt).Seconds())
+	sm.streams = make(map[string]*Stream)
 }
 
 // GetHLSPath возвращает путь к HLS-плейлисту
 func (s *Stream) GetHLSPath() string {
 	return s.HLSPath
+}
+
+// EnsureDir ensures that a directory exists, creating it if necessary.
+func EnsureDir(dir string) error {
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		return os.MkdirAll(dir, os.ModePerm)
+	}
+	return nil
 }

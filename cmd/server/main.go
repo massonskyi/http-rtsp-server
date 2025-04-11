@@ -34,7 +34,7 @@ func runServer(cfg *config.Config, logger *utils.Logger, storage *storage.Storag
 
 	// Создаем сервер
 	srv := &http.Server{
-		Addr:    ":" + fmt.Sprintf("%d", cfg.ServerPort),
+		Addr:    ":" + fmt.Sprintf("%d", cfg.GetServerPort()),
 		Handler: router.SetupRoutes(),
 	}
 
@@ -45,7 +45,7 @@ func runServer(cfg *config.Config, logger *utils.Logger, storage *storage.Storag
 				logger.Error("runServer", "main.go", fmt.Sprintf("Recovered from panic: %v", r))
 			}
 		}()
-		logger.Info("runServer", "main.go", fmt.Sprintf("Starting server on port %s", fmt.Sprintf("%d", cfg.ServerPort)))
+		logger.Info("runServer", "main.go", fmt.Sprintf("Starting server on port %d", cfg.GetServerPort()))
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			logger.Error("runServer", "main.go", fmt.Sprintf("Server failed: %v", err))
 		}
@@ -76,7 +76,7 @@ func main() {
 	loggerCfg.LogFilePath = "logs/server.log"
 	logger, err := utils.NewLogger(loggerCfg)
 	if err != nil {
-		fmt.Printf("Failed to initialize logger: %v\n", err)
+		logger.Errorf("main", "main.go", "Failed to initialize logger: %v\n", err)
 		os.Exit(1)
 	}
 	defer logger.Close()

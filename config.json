@@ -1,0 +1,21 @@
+{
+    "database_url": "postgres://postgres:postgres@localhost:5432/rtsp-database?sslmode=disable",
+    "video_dir": "./data/videos",
+    "thumbnail_dir": "./data/thumbnails",
+    "server_port": 8080,
+    "reserved_port": 8081,
+    "hls_dir": "./data/hls",
+    "ffmpeg": {
+      "video_bitrate": "2000k",
+      "video_max_rate": "2500k",
+      "video_min_rate": "1500k",
+      "video_buf_size": "3000k",
+      "frame_rate": "30",
+      "gop_size": 30,
+      "key_int_min": 30,
+      "hls_list_size": "0",
+      "hls_segment_time": "2",
+      "audio_bitrate": "128k",
+      "audio_sample_rate": "44100"
+    }
+  }
